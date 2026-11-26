@@ -1,0 +1,18 @@
+{
+  "id": "/zad/",
+  "name": "Zad: Quran Status & Video Maker",
+  "short_name": "فيديو الآيات",
+  "description": "Make Quran status videos, reels and long 16:9 recitation videos.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./pages/video-maker.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#10b981",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

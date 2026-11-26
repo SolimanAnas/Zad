@@ -1,0 +1,15 @@
+{
+  "name": "zad",
+  "version": "1.0.0",
+  "description": "Quran status / reels maker and long 16:9 recitation video maker — runs entirely in the browser.",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "start": "node tests/server.js",
+    "bgs": "node scripts/gen-video-bgs.cjs",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}
