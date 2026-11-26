@@ -54,7 +54,9 @@
       }));
     }
     const saveMeta = () => tx('readwrite', s => s.put(rec, 'meta')).catch(() => {});
-    const loadBlob = () => tx('readonly', s => s.get('blob'));
+    // Each recording's audio sits under its own key, so a failed replacement leaves the
+    // previous recording whole.
+    const loadBlob = () => tx('readonly', s => s.get('blob-' + rec.id)).then(b => b || tx('readonly', s => s.get('blob')));
     async function load() {
       try { rec = (await tx('readonly', s => s.get('meta'))) || null; } catch (e) { rec = null; }
       if (rec && !rec.sync) rec.sync = {};
@@ -172,6 +174,7 @@
         $('vmOwnMeta').innerHTML = '<span dir="ltr">' + fmt(rec.duration) + '</span> · <span dir="ltr">' + size(rec.size) + '</span>';
       }
       renderSyncStatus();
+      if (api.renderFx) api.renderFx();
     }
     function renderSyncStatus() {
       const el = $('vmOwnStatus');
@@ -204,24 +207,32 @@
       if (file.size > MAX_BYTES) { api.setStatus(tr('vm_own_big', { n: Math.round(MAX_BYTES / 1048576) }), true); return; }
       const secs = await probe(file);
       if (secs && secs > MAX_SECONDS) { api.setStatus(tr('vm_own_long', { n: MAX_SECONDS / 60 }), true); return; }
+      await saveRecording(file, file.name, secs);
+    }
+
+    // Stores and decodes a recording, then makes it the recitation and opens the sync
+    // sheet. `onDecoded(audio)` may set the current range's sync (the recorder does).
+    async function saveRecording(blob, name, secs, onDecoded) {
       api.setStatus(tr('vm_own_decoding'));
       const previous = rec, previousAudio = audio;
       const id = Date.now().toString(36);
-      rec = { id, name: file.name, size: file.size, type: file.type, duration: secs || 0, sync: {} };
+      rec = { id, name, size: blob.size, type: blob.type, duration: secs || 0, sync: {} };
       audio = null;
       try {
-        await tx('readwrite', s => { s.put(file, 'blob'); s.put(rec, 'meta'); });
+        await tx('readwrite', s => { s.put(blob, 'blob-' + id); s.put(rec, 'meta'); });
         const a = await decode();
         rec.duration = a.buffer.duration;
+        if (onDecoded) onDecoded(a);
         await saveMeta();
+        if (previous) tx('readwrite', s => { s.delete('blob-' + previous.id); s.delete('blob'); }).catch(() => {});
       } catch (e) {
         console.warn('[video-maker] own recording failed', e);
         rec = previous; audio = previousAudio;
-        if (previous) { tx('readwrite', s => { s.put(previous, 'meta'); }).catch(() => {}); }
+        tx('readwrite', s => { s.delete('blob-' + id); if (previous) s.put(previous, 'meta'); else s.delete('meta'); }).catch(() => {});
         const quota = e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)));
         api.setStatus(quota ? tr('vm_bg_no_space') : e && e.code === 'long' ? tr('vm_own_long', { n: MAX_SECONDS / 60 }) : tr('vm_own_bad'), true);
         renderBox();
-        return;
+        return false;
       }
       S.recSource = 'own';
       pendingOwn = false;
@@ -229,12 +240,47 @@
       renderBox();
       api.onChange();
       api.openSync();                 // a new recording is checked right away
+      return true;
+    }
+
+    // A take from the recorder: `taps` = seconds into it where the reader tapped «التالي».
+    // The taps become the sync of the current range (snapped to the pauses); if the
+    // reader stopped early, the ayat not reached share the rest by text length.
+    function addRecorded(blob, taps) {
+      const d = new Date();
+      const two = n => String(n).padStart(2, '0');
+      const ext = /mp4|aac|m4a/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
+      const name = 'recording-' + d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + '-' + two(d.getHours()) + two(d.getMinutes()) + '.' + ext;
+      return saveRecording(blob, name, 0, a => {
+        const segs = api.segments();
+        const n = segs.length;
+        const r = R.snapTaps(a.env, R.HOP, taps, n);
+        let m = r.markers;
+        const end = Math.max(r.end, m[m.length - 1] + MIN_STEP * 2);
+        if (m.length < n) {
+          const restFrom = m.length - 1;
+          m = m.slice(0, restFrom).concat(R.proportional(m[restFrom], end, segs.slice(restFrom).map(sg => letters(sg.text))));
+        }
+        rec.sync[keyOf()] = {
+          m: R.normalizeMarkers(m, end, MIN_STEP), end,
+          reviewed: taps.length >= n - 1, confidence: 'high', method: 'live',
+        };
+      });
+    }
+
+    // The recording's levels, for the voice polish (noise floor, voice, peaks).
+    let lvCache = null;
+    function levels() {
+      if (!audio || !window.AudioFx) return null;
+      if (!lvCache || lvCache.id !== audio.id) lvCache = { id: audio.id, v: AudioFx.analyze(audio.env, R.percentile) };
+      return lvCache.v;
     }
 
     async function remove() {
       if (!rec) return;
+      const id = rec.id;
       rec = null; audio = null;
-      try { await tx('readwrite', s => { s.delete('blob'); s.delete('meta'); }); } catch (e) { /* gone anyway */ }
+      try { await tx('readwrite', s => { s.delete('blob-' + id); s.delete('blob'); s.delete('meta'); }); } catch (e) { /* gone anyway */ }
       S.recSource = 'reciter';
       pendingOwn = false;
       renderBox();
@@ -307,6 +353,7 @@
       const box = $('vmSyncStatus');
       let msg, cls = 'sync-status';
       if (work.dirty || e.method === 'manual') msg = tr('vm_sync_manual');
+      else if (e.method === 'live') msg = tr('vm_sync_live');
       else if (e.method === 'text') { msg = tr('vm_sync_by_text'); cls += ' warn'; }
       else if (e.confidence === 'high') msg = tr('vm_sync_ok', { n: num(work.m.length) });
       else { msg = tr('vm_sync_unsure'); cls += ' warn'; }
@@ -535,7 +582,7 @@
     }
 
     return {
-      init, bindUi, renderBox, has, active, displayName, prepare, slices, span, sig, entryNow,
+      init, bindUi, renderBox, has, active, displayName, prepare, slices, span, sig, entryNow, addRecorded, levels,
       openSync, closeSync, renderSync, decode,
       get rec() { return rec; },
       get buffer() { return audio ? audio.buffer : null; },

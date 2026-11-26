@@ -534,7 +534,7 @@
     function playOwn({ c, outputs, onTick, onEnd, onError }) {
       const ac = api.audioCtx();
       const segs = api.segments();
-      let wins = [], total = null, t0 = null, stopped = false, raf = 0;
+      let wins = [], total = null, t0 = null, stopped = false, raf = 0, route = null;
       const sources = new Set();
       const ctl = {
         stop() {
@@ -543,19 +543,22 @@
           cancelAnimationFrame(raf);
           sources.forEach(s => { try { s.stop(); } catch (e) { /* not started */ } });
           sources.clear();
+          if (route) setTimeout(route.dispose, 50);
         },
       };
       (async () => {
         let p;
         try { p = await api.own.prepare(); } catch (e) { if (!stopped) onError(e); return; }
         if (stopped) return;
+        route = await api.fxRoute(outputs);      // the effects, when there are any
+        if (stopped) { route.dispose(); return; }
         const items = [];
         let t = LEAD;
         const at = ac.currentTime + 0.3;
         api.own.slices(p.entry).forEach((s, i) => {
           const src = ac.createBufferSource();
           src.buffer = p.audio.buffer;
-          outputs.forEach(n => src.connect(n));
+          route.outs.forEach(n => src.connect(n));
           src.onended = () => { sources.delete(src); try { src.disconnect(); } catch (e) { /* gone */ } };
           src.start(at + t, s.off, s.dur);
           sources.add(src);
@@ -625,6 +628,7 @@
       const ownMode = api.own.active();
       const ownP = ownMode ? await api.own.prepare() : null;
       const ownSlices = ownMode ? api.own.slices(ownP.entry) : null;
+      const fxOn = ownMode && api.fxActive();
       const pre = ownMode ? null : prefetcher(segs, 4);
       const decoder = ownMode ? null : new OfflineAudioContext(2, SR, SR);   // decodes straight to 48 kHz
       const target = new Mp4Muxer.ArrayBufferTarget();
@@ -712,7 +716,14 @@
         for (let i = 0; i < segs.length; i++) {
           if (isCancelled()) break;
           let ch0, ch1, n0 = 0, n1;
-          if (ownMode) {
+          if (ownMode && fxOn) {
+            // the slice through the effects, rendered offline exactly as the preview plays
+            // it (with the audio before it run through first, so tails carry over)
+            const sl = ownSlices[i];
+            const last = i === segs.length - 1;
+            const r = await AudioFx.renderRange(ownP.audio.buffer, sl.off, sl.dur, S.fx, api.own.levels(), SR, last ? AudioFx.tailOf(S.fx) : 0);
+            ch0 = r.ch0; ch1 = r.ch1; n1 = r.ch0.length;
+          } else if (ownMode) {
             // a slice of the one decoded recording
             const sl = ownSlices[i];
             ch0 = ownP.audio.ch0; ch1 = ownP.audio.ch1;

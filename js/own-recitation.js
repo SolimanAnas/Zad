@@ -139,7 +139,62 @@
     return out;
   }
 
-  const api = { HOP, MIN_GAP, envelopeDb, autoSplit, proportional, normalizeMarkers, outline, percentile };
+  // Voice activity of an envelope: the same threshold autoSplit uses.
+  function activity(env) {
+    const floor = percentile(env, 0.1), speech = percentile(env, 0.9);
+    const contrast = speech - floor;
+    const thr = floor + contrast * 0.3;
+    const active = new Uint8Array(env.length);
+    if (contrast >= 6) for (let i = 0; i < env.length; i++) active[i] = env[i] > thr ? 1 : 0;
+    return { active, contrast };
+  }
+
+  // The recorder's live sync: the reader taps «التالي» as they start each next ayah.
+  // A tap is a little early or late, so each one is moved to the voice onset after the
+  // pause nearest to it (within a window), the same place autoSplit would put a marker.
+  //   taps: seconds into the recording of each tap (taps[k] starts ayah k + 1)
+  //   n:    ayat expected. Fewer taps than n - 1 leave the rest to the caller.
+  // Returns { markers, end, snapped } — markers has taps.length + 1 entries.
+  function snapTaps(env, hop, taps, n) {
+    const h = hop || HOP;
+    const duration = env.length * h;
+    const { active } = activity(env);
+    let first = -1, last = -1;
+    for (let i = 0; i < active.length; i++) if (active[i]) { if (first < 0) first = i; last = i; }
+    const start = first >= 0 ? Math.max(0, first * h - LEAD_IN) : 0;
+    const end = last >= 0 ? Math.min(duration, (last + 1) * h + TAIL_OUT) : duration;
+    // pauses (>= 0.12 s) with the time the voice comes back after them
+    const minLen = Math.ceil(0.12 / h);
+    const gaps = [];
+    for (let i = Math.max(first, 0); i <= last && first >= 0;) {
+      if (active[i]) { i++; continue; }
+      let j = i;
+      while (j <= last && !active[j]) j++;
+      if (j - i >= minLen) gaps.push({ a: i * h, b: j * h });
+      i = j;
+    }
+    const markers = [start];
+    let snapped = 0;
+    const use = Math.min(taps.length, Math.max(0, n - 1));
+    for (let k = 0; k < use; k++) {
+      const t = taps[k];
+      let best = null, bestScore = -Infinity;
+      for (const g of gaps) {
+        // readers tap up to ~1.5 s after the next ayah starts, or a little before it
+        if (g.b < t - 1.5 || g.b > t + 0.8) continue;
+        if (g.b <= markers[markers.length - 1] + MIN_GAP) continue;
+        const score = Math.min(g.b - g.a, 1.2) - Math.abs(g.b - t) * 0.6;
+        if (score > bestScore) { bestScore = score; best = g; }
+      }
+      let m;
+      if (best) { m = Math.max(best.a + (best.b - best.a) * 0.5, best.b - LEAD_IN); snapped++; }
+      else m = Math.max(0, t - 0.3);          // no pause near: taps usually come a little late
+      markers.push(m);
+    }
+    return { markers: normalizeMarkers(markers, Math.max(end, markers[markers.length - 1] + MIN_GAP * 2), MIN_GAP), end, snapped };
+  }
+
+  const api = { HOP, MIN_GAP, envelopeDb, autoSplit, proportional, normalizeMarkers, outline, percentile, snapTaps };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.OwnRecitation = api;
 })(typeof window !== 'undefined' ? window : globalThis);

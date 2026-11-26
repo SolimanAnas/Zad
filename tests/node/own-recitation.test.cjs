@@ -125,4 +125,39 @@ test('outline is in 0..1 and has the requested number of bars', () => {
   assert.ok(Math.max(...o) > 0.8 && Math.min(...o) < 0.2);
 });
 
+test('recorder taps snap to the pause nearest each tap', () => {
+  const parts = [['s', 0.4]];
+  const V = [1.5, 2.0, 1.2, 2.5];
+  V.forEach((v, i) => { parts.push(['v', v]); if (i < V.length - 1) parts.push(['s', 0.7]); });
+  parts.push(['s', 0.6]);
+  const { ch, starts } = build(parts);
+  // taps late by 0.2–0.9 s, one a little early
+  const taps = [starts[1] + 0.6, starts[2] - 0.25, starts[3] + 0.9];
+  const r = R.snapTaps(env(ch), R.HOP, taps, 4);
+  assert.strictEqual(r.markers.length, 4);
+  assert.strictEqual(r.snapped, 3);
+  r.markers.forEach((m, i) => { assert.ok(m <= starts[i] + 0.02, 'before the voice ' + i); near(m, starts[i], 0.4, 'marker ' + i); });
+});
+
+test('a breath near the tap does not win over the real pause', () => {
+  // ayah 2 starts at 3.0 s after a 0.8 s pause; a 0.15 s breath sits at 3.9 s inside it
+  const parts = [['s', 0.3], ['v', 1.9], ['s', 0.8], ['v', 0.75], ['s', 0.15], ['v', 1.5], ['s', 0.5]];
+  const { ch } = build(parts);
+  const r = R.snapTaps(env(ch), R.HOP, [3.5], 2);
+  near(r.markers[1], 3.0, 0.3, 'second ayah');
+});
+
+test('no pause near a tap: the marker sits just before the tap', () => {
+  const { ch } = build([['s', 0.3], ['v', 6], ['s', 0.5]]);
+  const r = R.snapTaps(env(ch), R.HOP, [3.0], 2);
+  assert.strictEqual(r.snapped, 0);
+  near(r.markers[1], 2.7, 0.05, 'fallback');
+});
+
+test('fewer taps than ayat: only the tapped markers come back', () => {
+  const { ch, starts } = build([['s', 0.3], ['v', 1], ['s', 0.8], ['v', 1], ['s', 0.8], ['v', 1], ['s', 0.3]]);
+  const r = R.snapTaps(env(ch), R.HOP, [starts[1] + 0.3], 3);
+  assert.strictEqual(r.markers.length, 2);
+});
+
 console.log(`\n${passed} tests passed`);

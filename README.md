@@ -50,6 +50,28 @@ encodes slices of the one decoded recording — nothing is copied or downloaded,
 Limits: 30 minutes and 250 MB per recording (a decoded recording is held in memory while the video is made).
 The reciter-name field works with any recitation: leave it empty to show the reciter's own name (or «تلاوتي»).
 
+### Record in the app («سجّل الآن»)
+
+Instead of uploading, the user can recite straight into the app. A teleprompter shows the ayah to read (and the next
+one); the reader taps **«التالي»** — or the text, or Space — as they start each next ayah, and **«رجوع»** to undo a tap.
+The taps become the sync of the range, each one moved to the real pause nearest it (`snapTaps` in
+`js/own-recitation.js`), so the timing sheet that follows only needs a quick check. A 3-2-1 countdown, a level meter
+with a too-loud warning and a progress strip are included; closing the sheet while recording keeps the take.
+
+### Pro audio effects («مؤثرات صوتية احترافية»)
+
+For an own recording (uploaded or recorded), each with its own sliders, saved with the settings:
+
+- **Voice polish:** noise reduction (a gate tuned to the recording's own noise floor), warmth, clarity, evenness
+  (compressor) and a steady loudness. Switched on automatically for a new in-app take unless the effects were set by hand.
+- **Room reverb:** Room, Mosque, Hall and Haram presets, with amount and length.
+- **Echo:** amount, delay and repeats.
+
+Nothing is applied to the stored recording. The same Web Audio chain (`js/audio-fx.js`, with the gate in
+`js/fx-gate-worklet.js`) runs live for the preview, «استمع إلى المؤثرات» and the Shorts recording, and in an
+OfflineAudioContext slice by slice for the fast long-video export (each slice starts with the audio before it, so
+reverb and echo tails carry over) — what you hear is what is exported.
+
 ## How the fast export works (long video)
 
 A long video is not recorded in real time:
@@ -72,7 +94,9 @@ and the Shorts tab always works that way).
 | `pages/video-maker.html` | the page |
 | `js/video-maker.js` | the Shorts tab, the shared pickers, data and text drawing |
 | `js/video-maker-long.js` | the Long video tab: layout, caching, preview, fast export |
-| `js/video-maker-own.js`, `js/own-recitation.js` | your own recording: storage, decoding, the timing sheet; the pause-based split (unit-tested) |
+| `js/video-maker-own.js`, `js/own-recitation.js` | your own recording: storage, decoding, the timing sheet; the pause-based split and the tap snapping (unit-tested) |
+| `js/video-maker-rec.js` | the in-app recorder (teleprompter, live sync) |
+| `js/audio-fx.js`, `js/fx-gate-worklet.js`, `js/video-maker-fx.js` | the audio effects and their panel |
 | `js/tv-templates.js` | the template registry (positions are percentages of the 16:9 frame) |
 | `js/vendor/mp4-muxer.js` | MP4 writer (MIT) |
 | `images/tv-maker/` | long-video pictures — see its [README](images/tv-maker/README.md) |

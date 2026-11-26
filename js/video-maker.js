@@ -73,6 +73,7 @@
     basmala: true,
     recSource: 'reciter', // 'reciter' = a reciter from the list, 'own' = the user's own recording
     sheikh: '',         // name shown for the reciter ('' = the reciter's own name / «تلاوتي»)
+    fx: null,           // audio effects for the own recording (js/audio-fx.js; set in loadSettings)
     mode: 'short',      // 'short' = shorts / reels (default), 'long' = 16:9 long video
     tvTemplate: 'dawn', // long mode: template id (js/tv-templates.js)
     tvBg: 'g1',         // long mode: its own background ('g<i>' or 'i:<file>')
@@ -81,6 +82,8 @@
   let long = null;        // long-mode engine (js/video-maker-long.js)
   // The user's own recording (js/video-maker-own.js); without it every check is false.
   let own = { active: () => false, has: () => false };
+  let recorder = null;    // the in-app recorder (js/video-maker-rec.js)
+  let fxUi = null;        // the effects panel (js/video-maker-fx.js)
 
   let surahs = [];        // [{ n, name, nameEn, ayat: [text...] }]
   let basmalaText = '';
@@ -149,6 +152,44 @@
       vm_sync_unsure: 'الفواصل متقاربة فلا يمكن الجزم — استمع وصحّح الحدود',
       vm_sync_by_text: 'لم تُوجد فواصل كافية، فقُسّم الوقت حسب طول كل آية — صحّح الحدود بالاستماع',
       vm_sync_manual: 'عُدّل التوقيت يدوياً',
+      vm_rec_now: 'سجّل الآن',
+      vm_rec_title: 'التسجيل',
+      vm_rec_start: 'ابدأ التسجيل',
+      vm_rec_finish: 'إنهاء',
+      vm_rec_next: 'التالي',
+      vm_rec_back: 'رجوع',
+      vm_rec_cancel: 'إلغاء التسجيل',
+      vm_rec_count: 'الآية {i} من {n}',
+      vm_rec_hint: 'اقرأ الآية الظاهرة، واضغط «التالي» أو المس النص عندما تبدأ الآية التالية.',
+      vm_rec_mic_denied: 'لم يُسمح باستخدام الميكروفون — فعّله من إعدادات المتصفح',
+      vm_rec_mic_none: 'لا يوجد ميكروفون متاح',
+      vm_rec_unsupported: 'متصفحك لا يدعم التسجيل',
+      vm_rec_discard: 'حذف هذا التسجيل؟',
+      vm_rec_loud: 'الصوت مرتفع جداً — ابتعد قليلاً عن الميكروفون',
+      vm_rec_basmala: 'البسملة',
+      vm_sync_live: 'حُدّدت الحدود من ضغطاتك أثناء القراءة — استمع وتأكد',
+      vm_fx_title: 'مؤثرات صوتية احترافية',
+      vm_fx_master: 'تشغيل المؤثرات',
+      vm_fx_polish: 'تحسين الصوت',
+      vm_fx_gate: 'إزالة الضوضاء',
+      vm_fx_warmth: 'الدفء',
+      vm_fx_clarity: 'الوضوح',
+      vm_fx_comp: 'توازن الصوت',
+      vm_fx_norm: 'رفع الصوت إلى مستوى ثابت',
+      vm_fx_reverb: 'صدى المكان',
+      vm_fx_room_none: 'بدون',
+      vm_fx_room_room: 'غرفة',
+      vm_fx_room_mosque: 'مسجد',
+      vm_fx_room_hall: 'قاعة',
+      vm_fx_room_haram: 'الحرم',
+      vm_fx_amount: 'المقدار',
+      vm_fx_decay: 'الطول',
+      vm_fx_echo: 'الترديد',
+      vm_fx_delay: 'التأخير',
+      vm_fx_repeats: 'التكرار',
+      vm_fx_listen: 'استمع إلى المؤثرات',
+      vm_fx_stop: 'إيقاف',
+      vm_fx_auto_polish: 'فُعّل تحسين الصوت تلقائياً لتسجيلك — غيّره من «مؤثرات صوتية»',
       vm_mode_short: 'مقاطع قصيرة / ريلز', vm_mode_long: 'فيديو طويل', vm_template: 'القالب',
       vm_long_hint: 'كلما زادت الآيات طال وقت الإنشاء وكبر حجم الملف',
       vm_long_progress: 'جارٍ الإنشاء {p}% — الآية {i} من {n}',
@@ -199,6 +240,44 @@
       vm_sync_unsure: 'The pauses are too alike to be sure — listen and correct the boundaries',
       vm_sync_by_text: 'Not enough pauses were found, so the time was shared by the length of each ayah — correct the boundaries by listening',
       vm_sync_manual: 'Timing edited by hand',
+      vm_rec_now: 'Record now',
+      vm_rec_title: 'Recording',
+      vm_rec_start: 'Start recording',
+      vm_rec_finish: 'Finish',
+      vm_rec_next: 'Next',
+      vm_rec_back: 'Back',
+      vm_rec_cancel: 'Discard the recording',
+      vm_rec_count: 'Ayah {i} of {n}',
+      vm_rec_hint: 'Read the ayah shown, and tap «Next» or the text as you start the next ayah.',
+      vm_rec_mic_denied: 'The microphone isn\'t allowed — turn it on in the browser settings',
+      vm_rec_mic_none: 'No microphone is available',
+      vm_rec_unsupported: 'Your browser can\'t record audio',
+      vm_rec_discard: 'Delete this recording?',
+      vm_rec_loud: 'Too loud — move a little away from the microphone',
+      vm_rec_basmala: 'Basmala',
+      vm_sync_live: 'The boundaries come from your taps while reading — listen and check',
+      vm_fx_title: 'Pro audio effects',
+      vm_fx_master: 'Effects on',
+      vm_fx_polish: 'Voice polish',
+      vm_fx_gate: 'Noise reduction',
+      vm_fx_warmth: 'Warmth',
+      vm_fx_clarity: 'Clarity',
+      vm_fx_comp: 'Evenness (compression)',
+      vm_fx_norm: 'Even out the loudness',
+      vm_fx_reverb: 'Room reverb',
+      vm_fx_room_none: 'None',
+      vm_fx_room_room: 'Room',
+      vm_fx_room_mosque: 'Mosque',
+      vm_fx_room_hall: 'Hall',
+      vm_fx_room_haram: 'Haram',
+      vm_fx_amount: 'Amount',
+      vm_fx_decay: 'Length',
+      vm_fx_echo: 'Echo',
+      vm_fx_delay: 'Delay',
+      vm_fx_repeats: 'Repeats',
+      vm_fx_listen: 'Listen to the effects',
+      vm_fx_stop: 'Stop',
+      vm_fx_auto_polish: 'Voice polish was switched on for your recording — change it under «Pro audio effects»',
       vm_mode_short: 'Shorts / Reels', vm_mode_long: 'Long video', vm_template: 'Template',
       vm_long_hint: 'More ayat take longer to create and make a bigger file',
       vm_long_progress: 'Creating {p}% — ayah {i} of {n}',
@@ -256,6 +335,10 @@
     if (state.mode !== 'long') state.mode = 'short';
     if (state.recSource !== 'own') state.recSource = 'reciter';
     state.sheikh = typeof state.sheikh === 'string' ? state.sheikh.slice(0, 60) : '';
+    if (window.AudioFx) {
+      const touched = !!(state.fx && state.fx.touched);
+      state.fx = Object.assign(AudioFx.sanitize(state.fx || AudioFx.DEFAULTS), { touched });
+    }
     if (!(window.TV_TEMPLATES || []).some(t => t.id === state.tvTemplate)) state.tvTemplate = 'dawn';
     if (typeof state.tvBg !== 'string' || !/^(g\d+|i:.+)$/.test(state.tvBg)) state.tvBg = 'g1';
   }
@@ -1069,7 +1152,10 @@
     cancelAnimationFrame(playing.raf);
     if (playing.ctl) playing.ctl.stop();
     playing.sources.forEach(s => { try { s.stop(); } catch (e) { /* not started */ } });
+    if (playing.dispose) setTimeout(playing.dispose, 50);
+    const wasListening = !!playing.listen;
     playing = null;
+    if (wasListening && fxUi) fxUi.render();
     setBadge('');
     updatePreviewBtn();
     renderIdle();
@@ -1135,8 +1221,10 @@
     await ensureSlideImages();
     await startBgVideo();
     if (playing) return;
+    const route = await fxRoute([ac.destination]);
+    if (playing) { route.dispose(); return; }
     const t0 = ac.currentTime + 0.1;
-    playing = { sources: startSources(tl, [ac.destination], t0), t0, raf: 0, export: false };
+    playing = { sources: startSources(tl, route.outs, t0), t0, raf: 0, export: false, dispose: route.dispose };
     updatePreviewBtn();
     const tick = () => {
       if (!playing) return;
@@ -1164,6 +1252,60 @@
     });
     playing = { sources: [], ctl, raf: 0, export: false };
     updatePreviewBtn();
+  }
+
+  // ---------- audio effects (own recording) ----------
+  const fxActive = () => own.active() && !!window.AudioFx && AudioFx.active(state.fx);
+  // Where sources connect: straight to `outs`, or into the effects chain that feeds them.
+  async function fxRoute(outs) {
+    if (!fxActive()) return { outs, dispose() {} };
+    const chain = await AudioFx.build(audioCtx(), state.fx, own.levels());
+    outs.forEach(n => chain.output.connect(n));
+    return { outs: [chain.input], dispose: chain.dispose };
+  }
+  const listening = () => !!(playing && playing.listen);
+  // «استمع إلى المؤثرات»: a few seconds of the recording through the current effects.
+  async function listenFx(from) {
+    if (listening() && from == null) { stopPlayback(); return; }
+    stopPlayback();
+    const ac = audioCtx();
+    ac.resume();
+    let p;
+    try { p = await own.prepare(); } catch (e) { setStatus(tr('vm_own_bad'), true); return; }
+    const route = await fxRoute([ac.destination]);
+    if (playing) { route.dispose(); return; }
+    const start = from != null ? from : p.entry.m[0];
+    const len = Math.max(0.5, Math.min(12, p.entry.end - start));
+    const src = ac.createBufferSource();
+    src.buffer = p.audio.buffer;
+    route.outs.forEach(n => src.connect(n));
+    const at = ac.currentTime + 0.05;
+    src.start(at, start, len);
+    playing = { sources: [src], t0: at, raf: 0, export: false, listen: true, from: start, dispose: route.dispose };
+    src.onended = () => { if (playing && playing.sources[0] === src) stopPlayback(); };
+    if (fxUi) fxUi.render();
+  }
+  // A setting changed: keep listening (from where it was) with the new sound; a
+  // running preview restarts with it.
+  function fxChanged() {
+    saveSettings();
+    if (listening()) {
+      const pos = playing.from + (audioCtx().currentTime - playing.t0);
+      listenFx(Math.min(pos, own.entryNow() ? own.entryNow().end - 0.5 : pos));
+      return;
+    }
+    if (playing && !playing.export) stopPlayback();
+    if (long) long.invalidate();
+  }
+  // A new take from the recorder: the voice polish is switched on for it (raw phone
+  // recordings gain the most), unless the user has already set the effects themselves.
+  function recorded() {
+    if (!window.AudioFx || !own.active() || state.fx.touched) return;
+    state.fx.on = true;
+    state.fx.polish.on = true;
+    saveSettings();
+    if (fxUi) fxUi.render();
+    setStatus(tr('vm_fx_auto_polish'));
   }
 
   function pickMime() {
@@ -1278,10 +1420,11 @@
     cancelExport = () => { cancelled = true; };
 
     await startBgVideo();
+    // Also route to the speakers so the user hears what is being recorded.
+    const route = await fxRoute([dest, ac.destination]);
     rec.start(1000);
     const t0 = ac.currentTime + 0.15;
-    // Also route to the speakers so the user hears what is being recorded.
-    playing = { sources: startSources(tl, [dest, ac.destination], t0), t0, raf: 0, export: true };
+    playing = { sources: startSources(tl, route.outs, t0), t0, raf: 0, export: true, dispose: route.dispose };
     setBadge(' ', true);
     setStatus(tr('vm_keep_open'));
     setProgress(0);
@@ -1446,6 +1589,7 @@
     const searchBox = $('vm' + kind + 'Search');
     if (searchBox) searchBox.value = '';
     if (kind === 'Sync') own.openSync();
+    else if (kind === 'Rec') recorder.open();
     else if (kind === 'Surah') renderSurahList();
     else if (kind === 'Popular') renderPopularList();
     else if (kind === 'Search') renderSearchList();
@@ -1455,7 +1599,8 @@
     if (window.BackClose) BackClose.opened(closePick);
     // Long lists jump to the current choice; the popular sheet opens at the top
     // so its search box and category chips stay in view.
-    const sel = kind !== 'Popular' && kind !== 'Sync' && $('vm' + kind + 'List').querySelector('.selected');
+    const list = $('vm' + kind + 'List');
+    const sel = kind !== 'Popular' && kind !== 'Sync' && list && list.querySelector('.selected');
     if (sel) sel.scrollIntoView({ block: 'center' });
   }
   // ---------- "✦ Popular" quick picks (js/popular-ayat.js) ----------
@@ -1544,8 +1689,10 @@
     $('vmPickOverlay').classList.remove('active');
     $('vm' + pickSheet + 'Sheet').classList.remove('active', 'searching');
     if (document.activeElement) document.activeElement.blur();
-    if (pickSheet === 'Sync') own.closeSync();
+    const was = pickSheet;
     pickSheet = null;
+    if (was === 'Sync') own.closeSync();
+    else if (was === 'Rec' && recorder) recorder.close();
   }
   // Picking writes the hidden <select> and fires its change handler, so all
   // range/summary/preview logic stays in one place.
@@ -1770,6 +1917,7 @@
     updateDuration();
     renderIdle();
     if (own.renderBox) own.renderBox();
+    if (fxUi) fxUi.render();
     if (isLong()) refreshTemplateThumbs();
   }
 
@@ -1913,6 +2061,7 @@
     window.addEventListener('langchange', () => {
       fillSurahs(); fillReciters(); updatePreviewBtn(); updateSummary(); updateDuration(); renderIdle();
       if (own.renderBox) own.renderBox();
+      if (fxUi) fxUi.render();
       if (isLong()) { markTemplates(); refreshTemplateThumbs(); }
       if (pickSheet === 'Surah') renderSurahList();
       else if (pickSheet === 'Reciter') renderReciterList();
@@ -1952,13 +2101,22 @@
     if (window.VMOwn && window.OwnRecitation) {
       own = VMOwn({
         state, $, tr, esc, arabicNames, arDigits, segments, ayahWords, rangeKey, reciterObj, reciterName,
-        setStatus, onChange: () => onChange(),
+        setStatus, onChange: () => onChange(), renderFx: () => { if (fxUi) fxUi.render(); },
         openSync: () => openPick('Sync'), closeSync: () => closePick(),
       });
     }
+    if (window.VMRec && own.addRecorded) {
+      recorder = VMRec({
+        $, tr, arabicNames, arDigits, segments, ayahWords, qfont: () => QFONT, audioCtx, own, setStatus,
+        openSheet: () => openPick('Rec'), closeSheet: () => closePick(), recorded: () => recorded(),
+      });
+    }
+    if (window.VMFxUi && window.AudioFx) {
+      fxUi = VMFxUi({ $, state, tr, arabicNames, arDigits, own, fxChanged, listenFx: () => listenFx(), listening });
+    }
     if (window.VMLong && window.TV_TEMPLATES) {
       long = VMLong({
-        state, GRADIENTS, BRAND, appIcon, AUDIO_BASE, own, displayName,
+        state, GRADIENTS, BRAND, appIcon, AUDIO_BASE, own, displayName, fxRoute, fxActive,
         tr, lang, arabicNames, arDigits, surahObj, reciterObj, reciterName, surahLatin,
         qfont: () => QFONT, segments, ayahWords, wrapWords, fillAyahLine, audioCtx, bgSrc,
         onAsset: () => { renderIdle(); if (isLong()) refreshTemplateThumbs(); },
@@ -1993,6 +2151,8 @@
     clampRange('from');
     bindControls();
     if (own.bindUi) own.bindUi();
+    if (recorder) recorder.bindUi();
+    if (fxUi) { fxUi.bindUi(); fxUi.render(); }
     // Canvas text silently falls back to a system font if drawn before the
     // webfont is ready, so wait for both faces before the first frame.
     try { await Promise.all([document.fonts.load('40px ' + QFONT), document.fonts.load('40px VMTajawal')]); } catch (e) { /* fall through */ }
@@ -2005,7 +2165,7 @@
 
   // Bump BUILD whenever pages/video-maker.html starts depending on new script
   // features; the page reloads once with a fresh copy if it gets an older one.
-  const BUILD = 7;   // 7: own recording («تسجيلي») + editable reciter name, 6: long video tab (js/video-maker-long.js), 5: user's own backgrounds, 4: mushaf font + QPC Hafs text, 3: Quran search sheet (2: multi-picture slideshow)
+  const BUILD = 8;   // 8: in-app recorder + audio effects, 7: own recording («تسجيلي») + editable reciter name, 6: long video tab (js/video-maker-long.js), 5: user's own backgrounds, 4: mushaf font + QPC Hafs text, 3: Quran search sheet (2: multi-picture slideshow)
   window.VM = { build: BUILD, state, renderFrame, buildTimeline, loadAyahAudio, exportVideo };
   init();
 })();

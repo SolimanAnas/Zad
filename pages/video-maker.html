@@ -476,6 +476,63 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .own-status.warn { color:#b45309; }
 .own-private { font-size:11.5px; color:var(--text-secondary); margin:4px 2px 2px; }
 #vmOwnBox, #vmReciterBox { margin-top:2px; }
+/* Record / upload buttons side by side */
+.own-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.own-actions .own-pick { font-size:14px; padding:10px 8px; }
+#vmOwnRec { border-style:solid; background:#dc2626; border-color:#dc2626; color:#fff; }
+/* Audio effects panel */
+.fx-box { margin-top:10px; border-radius:16px; border:1px solid var(--glass-border); background:var(--field-bg); padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+.fx-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.fx-title { display:flex; align-items:center; gap:8px; font-weight:800; font-size:14.5px; }
+.fx-title svg { width:18px; height:18px; color:var(--accent-main); }
+.fx-body { display:flex; flex-direction:column; gap:10px; transition:opacity .2s; }
+.fx-body.off { opacity:.45; }
+.fx-group { display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid var(--glass-border); }
+.fx-sub { display:flex; align-items:center; justify-content:space-between; font-weight:800; font-size:13.5px; color:var(--text-primary); }
+.fx-rows { display:flex; flex-direction:column; gap:4px; transition:opacity .2s; }
+.fx-rows.off { opacity:.45; pointer-events:none; }
+.fx-row { display:grid; grid-template-columns:minmax(84px, 34%) 1fr 64px; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary); font-weight:700; }
+.fx-row output { font-size:12px; text-align:end; font-variant-numeric:tabular-nums; color:var(--text-primary); }
+.fx-row.fx-check { grid-template-columns:1fr auto; }
+.fx-rooms { display:flex; gap:6px; flex-wrap:wrap; }
+.fx-rooms button { border:1px solid var(--glass-border); background:var(--list-hover); color:var(--text-secondary); border-radius:12px; padding:7px 12px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+.fx-rooms button.active { background:var(--accent-main); border-color:var(--accent-main); color:#fff; }
+.fx-listen { flex:none; width:100%; padding:11px 10px; font-size:14.5px; }
+/* Recorder sheet */
+.rec-sheet { max-width:620px; height:calc(var(--vvh, 100dvh) - 24px); max-height:none; }
+.rec-sheet .sheet-content { gap:12px; }
+.rec-top { display:flex; align-items:center; justify-content:space-between; font-weight:800; }
+.rec-count { color:var(--accent-main); font-size:15px; }
+.rec-time { font-variant-numeric:tabular-nums; font-size:15px; color:var(--text-secondary); }
+.rec-dots { display:flex; gap:4px; flex-wrap:wrap; }
+.rec-dots i { flex:1 1 6px; max-width:24px; height:5px; border-radius:3px; background:var(--glass-border); }
+.rec-dots i.done { background:var(--accent-main); }
+.rec-dots i.cur { background:#dc2626; }
+.rec-prompt { position:relative; flex:1; min-height:200px; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:18px 16px; border-radius:20px;
+  background:var(--field-bg); border:1.5px solid var(--glass-border); cursor:default; overflow-y:auto; user-select:none; transition:border-color .2s; }
+.rec-prompt.live { cursor:pointer; border-color:#dc2626; }
+.rec-prompt.flash { animation:recFlash .35s ease; }
+@keyframes recFlash { from { background:var(--accent-muted); } }
+.rec-ayah { font-size:clamp(30px, 8.4vw, 50px); line-height:2; text-align:center; color:var(--text-primary); }
+.rec-next { font-size:clamp(18px, 4.6vw, 26px); line-height:1.9; text-align:center; color:var(--text-secondary); opacity:.6; border-top:1px dashed var(--glass-border); padding-top:10px; }
+.rec-countdown { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:96px; font-weight:900; color:#dc2626; background:color-mix(in srgb, var(--field-bg) 82%, transparent); border-radius:20px; }
+.rec-meter { height:8px; border-radius:6px; background:var(--glass-border); overflow:hidden; flex-shrink:0; }
+.rec-meter span { display:block; height:100%; width:0; background:var(--accent-main); transition:width .06s linear; }
+.rec-meter span.hot { background:#dc2626; }
+.rec-status { min-height:1.2em; font-size:13px; font-weight:700; color:var(--text-secondary); text-align:center; }
+.rec-status.warn { color:#b45309; }
+.rec-controls { display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:10px; align-items:stretch; }
+.rec-side, .rec-main { display:flex; align-items:center; justify-content:center; gap:8px; min-height:58px; border-radius:18px; font:inherit; font-size:16px; font-weight:800; cursor:pointer; border:1px solid var(--glass-border); background:var(--field-bg); color:var(--text-primary); }
+.rec-side svg { width:20px; height:20px; }
+.rec-side:disabled, .rec-main:disabled { opacity:.4; cursor:default; }
+.rec-next-btn:not(:disabled) { background:var(--accent-main); border-color:var(--accent-main); color:#fff; }
+.rec-main { background:#dc2626; border-color:#dc2626; color:#fff; }
+.rec-main .rec-dot { width:14px; height:14px; border-radius:50%; background:#fff; }
+.rec-main.on .rec-dot { border-radius:3px; animation:recPulse 1s ease-in-out infinite; }
+@keyframes recPulse { 50% { opacity:.35; } }
+.rec-hint { font-size:12.5px; color:var(--text-secondary); text-align:center; line-height:1.6; }
+.rec-cancel { align-self:center; border:none; background:none; color:var(--danger, #dc2626); font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:underline; }
+@media (prefers-reduced-motion:reduce) { .rec-main.on .rec-dot, .rec-prompt.flash { animation:none; } }
 /* Sync sheet */
 .sync-sheet { max-width:560px; }
 .sync-hint { font-size:12.5px; color:var(--text-secondary); line-height:1.6; }
@@ -673,10 +730,16 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
         </div>
         <div id="vmOwnBox" hidden>
           <input type="file" id="vmOwnFile" accept="audio/*,video/mp4,video/webm,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.weba" hidden>
-          <button type="button" class="own-pick" id="vmOwnPick">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
-            <span class="own-pick-text" data-i18n="vm_own_pick">ارفع تسجيلك الصوتي</span>
-          </button>
+          <div class="own-actions">
+            <button type="button" class="own-pick" id="vmOwnRec">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+              <span data-i18n="vm_rec_now">سجّل الآن</span>
+            </button>
+            <button type="button" class="own-pick" id="vmOwnPick">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+              <span class="own-pick-text" data-i18n="vm_own_pick">ارفع تسجيلك الصوتي</span>
+            </button>
+          </div>
           <div class="own-info" id="vmOwnInfo" hidden>
             <span class="own-file"><b id="vmOwnName"></b><small id="vmOwnMeta"></small></span>
             <button type="button" class="own-del" id="vmOwnDel" data-i18n-title="vm_bg_delete" title="حذف" data-i18n-aria="vm_bg_delete" aria-label="حذف">×</button>
@@ -686,6 +749,50 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
             <span data-i18n="vm_own_sync">ضبط توقيت الآيات</span>
           </button>
           <div class="own-status" id="vmOwnStatus" aria-live="polite"></div>
+          <div class="fx-box" id="vmFxBox" hidden>
+            <div class="fx-head">
+              <span class="fx-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="vm_fx_title">مؤثرات صوتية احترافية</span></span>
+              <input type="checkbox" class="switch" id="vmFxOn" data-i18n-aria="vm_fx_master" aria-label="تشغيل المؤثرات">
+            </div>
+            <div class="fx-body" id="vmFxBody">
+              <div class="fx-group">
+                <label class="fx-sub"><span data-i18n="vm_fx_polish">تحسين الصوت</span><input type="checkbox" class="switch" id="vmFxPolish"></label>
+                <div class="fx-rows" id="vmFxPolishRows">
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_gate"></span><input type="range" id="vmFxGate" min="0" max="100" step="1"><output id="vmFxGateVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_warmth"></span><input type="range" id="vmFxWarmth" min="0" max="8" step="0.5"><output id="vmFxWarmthVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_clarity"></span><input type="range" id="vmFxClarity" min="0" max="8" step="0.5"><output id="vmFxClarityVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_comp"></span><input type="range" id="vmFxComp" min="0" max="100" step="1"><output id="vmFxCompVal" dir="ltr"></output></label>
+                  <label class="fx-row fx-check"><span class="fx-name" data-i18n="vm_fx_norm">رفع الصوت إلى مستوى ثابت</span><input type="checkbox" class="switch" id="vmFxNorm"></label>
+                </div>
+              </div>
+              <div class="fx-group">
+                <div class="fx-sub"><span data-i18n="vm_fx_reverb">صدى المكان</span></div>
+                <div class="fx-rooms" id="vmFxRooms">
+                  <button type="button" data-room="none" data-i18n="vm_fx_room_none">بدون</button>
+                  <button type="button" data-room="room" data-i18n="vm_fx_room_room">غرفة</button>
+                  <button type="button" data-room="mosque" data-i18n="vm_fx_room_mosque">مسجد</button>
+                  <button type="button" data-room="hall" data-i18n="vm_fx_room_hall">قاعة</button>
+                  <button type="button" data-room="haram" data-i18n="vm_fx_room_haram">الحرم</button>
+                </div>
+                <div class="fx-rows" id="vmFxRevRows">
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_amount"></span><input type="range" id="vmFxRevMix" min="0" max="0.6" step="0.01"><output id="vmFxRevMixVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_decay"></span><input type="range" id="vmFxRevDecay" min="0.3" max="8" step="0.1"><output id="vmFxRevDecayVal" dir="ltr"></output></label>
+                </div>
+              </div>
+              <div class="fx-group">
+                <div class="fx-sub"><span data-i18n="vm_fx_echo">الترديد</span></div>
+                <div class="fx-rows">
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_amount"></span><input type="range" id="vmFxEchoMix" min="0" max="0.6" step="0.01"><output id="vmFxEchoMixVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_delay"></span><input type="range" id="vmFxEchoDelay" min="0.06" max="0.8" step="0.01"><output id="vmFxEchoDelayVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_repeats"></span><input type="range" id="vmFxEchoFb" min="0" max="0.75" step="0.01"><output id="vmFxEchoFbVal" dir="ltr"></output></label>
+                </div>
+              </div>
+              <button type="button" class="btn fx-listen" id="vmFxListen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 11v2"/></svg>
+                <span id="vmFxListenLabel" data-i18n="vm_fx_listen">استمع إلى المؤثرات</span>
+              </button>
+            </div>
+          </div>
           <div class="own-private" data-i18n="vm_own_private">تسجيلك يبقى على جهازك ولا يُرفع إلى أي مكان.</div>
         </div>
         <div class="field">
@@ -843,6 +950,28 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
     <div class="sheet-list" id="vmPopularList"></div>
   </div>
 </div>
+<div class="bottom-sheet rec-sheet" id="vmRecSheet" role="dialog" aria-modal="true">
+  <div class="drag-handle"></div>
+  <div class="sheet-header"><h2 data-i18n="vm_rec_title">التسجيل</h2><button class="icon-btn" type="button" data-close-pick aria-label="Close"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
+  <div class="sheet-content">
+    <div class="rec-top"><span class="rec-count" id="vmRecCount"></span><span class="rec-time" id="vmRecTime" dir="ltr">0:00</span></div>
+    <div class="rec-dots" id="vmRecDots" aria-hidden="true"></div>
+    <div class="rec-prompt" id="vmRecPrompt" role="button" tabindex="0" data-i18n-aria="vm_rec_next" aria-label="التالي">
+      <div class="rec-ayah" id="vmRecAyah" dir="rtl"></div>
+      <div class="rec-next" id="vmRecNext" dir="rtl"></div>
+      <div class="rec-countdown" id="vmRecCountdown" hidden></div>
+    </div>
+    <div class="rec-meter" aria-hidden="true"><span id="vmRecLevel"></span></div>
+    <div class="rec-status" id="vmRecStatus" aria-live="polite"></div>
+    <div class="rec-controls">
+      <button type="button" class="rec-side" id="vmRecBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span data-i18n="vm_rec_back">رجوع</span></button>
+      <button type="button" class="rec-main" id="vmRecMain"><span class="rec-dot" aria-hidden="true"></span><span id="vmRecMainLabel" data-i18n="vm_rec_start">ابدأ التسجيل</span></button>
+      <button type="button" class="rec-side rec-next-btn" id="vmRecNextBtn"><span id="vmRecNextLabel" data-i18n="vm_rec_next">التالي</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    </div>
+    <div class="rec-hint" data-i18n="vm_rec_hint">اقرأ الآية الظاهرة، واضغط «التالي» أو المس النص عندما تبدأ الآية التالية.</div>
+    <button type="button" class="rec-cancel" id="vmRecCancel" hidden data-i18n="vm_rec_cancel">إلغاء التسجيل</button>
+  </div>
+</div>
 <div class="bottom-sheet sync-sheet" id="vmSyncSheet" role="dialog" aria-modal="true">
   <div class="drag-handle"></div>
   <div class="sheet-header"><h2 data-i18n="vm_sync_title">ضبط توقيت الآيات</h2><button class="icon-btn" type="button" data-close-pick aria-label="Close"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
@@ -918,6 +1047,9 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
 <script src="../js/video-maker-long.js"></script>
 <script src="../js/own-recitation.js"></script>
 <script src="../js/video-maker-own.js"></script>
+<script src="../js/audio-fx.js"></script>
+<script src="../js/video-maker-fx.js"></script>
+<script src="../js/video-maker-rec.js"></script>
 <script src="../js/video-maker.js"></script>
 <script>
 function openLanguage() { if (window.I18n) I18n.openLangSheet(); }
@@ -927,7 +1059,7 @@ function openLanguage() { if (window.I18n) I18n.openLangSheet(); }
 // the "multiple pictures" switch shows but does nothing). Drop the stale copy from
 // every cache and reload once. Keep NEED in step with BUILD in js/video-maker.js.
 (function () {
-  var NEED = 7;
+  var NEED = 8;
   try {
     if (window.VM && VM.build >= NEED) { sessionStorage.removeItem('vmHealed'); return; }
     if (sessionStorage.getItem('vmHealed') || !window.caches) return;   // at most once per tab
