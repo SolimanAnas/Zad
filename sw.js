@@ -6,7 +6,7 @@
 //     first time it is used.
 //   - Recitation MP3s: cache-first, filled on first use.
 // Bump VERSION whenever a cached file changes.
-const VERSION = 'qvm-v1';
+const VERSION = 'qvm-v3';
 const AUDIO = 'qvm-audio-v1';
 const CORE = [
   './', './index.html', './manifest.json',
@@ -15,7 +15,7 @@ const CORE = [
   './fonts/Tajawal.ttf', './fonts/Tajawal-Bold.ttf', './fonts/uthmani-colored.ttf',
   './fonts/UthmanicHafs_V20.ttf', './fonts/Scheherazade.ttf', './fonts/Amiri.ttf',
   './data/quran.json', './data/quran-qpc.json',
-  './icons/icon-192.png',
+  './icons/icon-192.png', './icons/favicon-48.png', './icons/apple-touch-icon.png',
   './img/SVG/close.svg', './img/SVG/home.svg', './img/SVG/search.svg',
   './images/Background-light.webp',
   './images/video-maker/manifest.json',

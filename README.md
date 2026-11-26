@@ -1,3 +1,5 @@
+<p align="center"><img src="icons/icon_512.png" alt="Zad" width="160"></p>
+
 # Zad: Quran Status & Video Maker
 
 Make Quran videos in the browser — nothing is uploaded anywhere.
