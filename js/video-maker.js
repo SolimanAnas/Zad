@@ -71,12 +71,16 @@
     textFx: 'strokeglow', // ayah text effect: strokeglow | glow | shadow | none
     halo: 'auto',       // colour of that glow / shadow / outline: 'auto' or '#rrggbb'
     basmala: true,
+    recSource: 'reciter', // 'reciter' = a reciter from the list, 'own' = the user's own recording
+    sheikh: '',         // name shown for the reciter ('' = the reciter's own name / «تلاوتي»)
     mode: 'short',      // 'short' = shorts / reels (default), 'long' = 16:9 long video
     tvTemplate: 'dawn', // long mode: template id (js/tv-templates.js)
     tvBg: 'g1',         // long mode: its own background ('g<i>' or 'i:<file>')
   };
   const isLong = () => state.mode === 'long' && !!long;
   let long = null;        // long-mode engine (js/video-maker-long.js)
+  // The user's own recording (js/video-maker-own.js); without it every check is false.
+  let own = { active: () => false, has: () => false };
 
   let surahs = [];        // [{ n, name, nameEn, ayat: [text...] }]
   let basmalaText = '';
@@ -116,6 +120,35 @@
       vm_duration: 'مدة الفيديو', vm_duration_fail: 'تعذّر حساب المدة — تحقق من الاتصال',
       vm_bg_max: 'لديك {n} خلفيات خاصة — احذف واحدة أولاً', vm_bg_no_space: 'لا توجد مساحة كافية على الجهاز',
       vm_halo_color: 'لون التوهج والظل', vm_halo_auto: 'تلقائي',
+      vm_src_reciter: 'قارئ من القائمة',
+      vm_src_own: 'تسجيلي الخاص',
+      vm_own_pick: 'ارفع تسجيلك الصوتي',
+      vm_own_replace: 'استبدال التسجيل',
+      vm_own_sync: 'ضبط توقيت الآيات',
+      vm_own_private: 'تسجيلك يبقى على جهازك ولا يُرفع إلى أي مكان.',
+      vm_sheikh_name: 'اسم القارئ المعروض',
+      vm_my_recitation: 'تلاوتي',
+      vm_own_unsynced: 'لم يُضبط توقيت الآيات لهذا المدى بعد',
+      vm_own_unreviewed: '⚠ قُسّم التسجيل تلقائياً — راجع التوقيت قبل إنشاء الفيديو',
+      vm_own_synced: '✓ توقيت الآيات مضبوط',
+      vm_own_bad: 'تعذّر فتح هذا الملف — اختر ملفاً صوتياً (MP3 أو M4A أو WAV أو OGG)',
+      vm_own_big: 'الملف كبير جداً — الحد {n} ميغابايت',
+      vm_own_long: 'التسجيل طويل جداً — الحد {n} دقيقة',
+      vm_own_decoding: 'جارٍ تحليل التسجيل…',
+      vm_sync_title: 'ضبط توقيت الآيات',
+      vm_sync_hint: 'استمع وحرّك العلامات حتى تبدأ كل آية عند علامتها. اضغط ▶ بجانب أي آية لسماعها، أو ⌖ لوضع العلامة عند موضع التشغيل.',
+      vm_sync_all: 'الكل',
+      vm_sync_auto: 'تقسيم تلقائي',
+      vm_sync_text: 'حسب طول النص',
+      vm_sync_done: 'تم',
+      vm_sync_end: 'نهاية التلاوة',
+      vm_sync_play_here: 'استمع من هنا',
+      vm_sync_time: 'الوقت بالثواني',
+      vm_sync_set_here: 'ضع العلامة عند موضع التشغيل',
+      vm_sync_ok: 'قُسّم التسجيل إلى {n} آية حسب فواصل الصمت — استمع وتأكد من الحدود',
+      vm_sync_unsure: 'الفواصل متقاربة فلا يمكن الجزم — استمع وصحّح الحدود',
+      vm_sync_by_text: 'لم تُوجد فواصل كافية، فقُسّم الوقت حسب طول كل آية — صحّح الحدود بالاستماع',
+      vm_sync_manual: 'عُدّل التوقيت يدوياً',
       vm_mode_short: 'مقاطع قصيرة / ريلز', vm_mode_long: 'فيديو طويل', vm_template: 'القالب',
       vm_long_hint: 'كلما زادت الآيات طال وقت الإنشاء وكبر حجم الملف',
       vm_long_progress: 'جارٍ الإنشاء {p}% — الآية {i} من {n}',
@@ -137,6 +170,35 @@
       vm_duration: 'Video length', vm_duration_fail: "Couldn't work out the length — check your connection",
       vm_bg_max: 'You have {n} backgrounds of your own — delete one first', vm_bg_no_space: 'Not enough storage on this device',
       vm_halo_color: 'Glow & shadow color', vm_halo_auto: 'Automatic',
+      vm_src_reciter: 'A reciter from the list',
+      vm_src_own: 'My own recording',
+      vm_own_pick: 'Upload your audio recording',
+      vm_own_replace: 'Replace the recording',
+      vm_own_sync: 'Set the ayah timing',
+      vm_own_private: 'Your recording stays on your device and is never uploaded.',
+      vm_sheikh_name: 'Reciter name shown',
+      vm_my_recitation: 'My recitation',
+      vm_own_unsynced: 'The ayah timing isn\'t set for this range yet',
+      vm_own_unreviewed: '⚠ The recording was split automatically — check the timing before making the video',
+      vm_own_synced: '✓ Ayah timing is set',
+      vm_own_bad: 'Couldn\'t open this file — choose an audio file (MP3, M4A, WAV or OGG)',
+      vm_own_big: 'The file is too large — up to {n} MB',
+      vm_own_long: 'The recording is too long — up to {n} minutes',
+      vm_own_decoding: 'Analysing the recording…',
+      vm_sync_title: 'Set the ayah timing',
+      vm_sync_hint: 'Listen and move the markers so each ayah starts at its marker. Tap ▶ next to an ayah to hear it, or ⌖ to put the marker at the playhead.',
+      vm_sync_all: 'All',
+      vm_sync_auto: 'Split automatically',
+      vm_sync_text: 'By text length',
+      vm_sync_done: 'Done',
+      vm_sync_end: 'End of the recitation',
+      vm_sync_play_here: 'Listen from here',
+      vm_sync_time: 'Time in seconds',
+      vm_sync_set_here: 'Put the marker at the playhead',
+      vm_sync_ok: 'The recording was split into {n} ayat at the pauses — listen and check the boundaries',
+      vm_sync_unsure: 'The pauses are too alike to be sure — listen and correct the boundaries',
+      vm_sync_by_text: 'Not enough pauses were found, so the time was shared by the length of each ayah — correct the boundaries by listening',
+      vm_sync_manual: 'Timing edited by hand',
       vm_mode_short: 'Shorts / Reels', vm_mode_long: 'Long video', vm_template: 'Template',
       vm_long_hint: 'More ayat take longer to create and make a bigger file',
       vm_long_progress: 'Creating {p}% — ayah {i} of {n}',
@@ -192,6 +254,8 @@
     if (!TEXT_FX.includes(state.textFx)) state.textFx = 'strokeglow';
     if (state.halo !== 'auto' && !/^#[0-9a-f]{6}$/i.test(String(state.halo))) state.halo = 'auto';
     if (state.mode !== 'long') state.mode = 'short';
+    if (state.recSource !== 'own') state.recSource = 'reciter';
+    state.sheikh = typeof state.sheikh === 'string' ? state.sheikh.slice(0, 60) : '';
     if (!(window.TV_TEMPLATES || []).some(t => t.id === state.tvTemplate)) state.tvTemplate = 'dawn';
     if (typeof state.tvBg !== 'string' || !/^(g\d+|i:.+)$/.test(state.tvBg)) state.tvBg = 'g1';
   }
@@ -200,6 +264,12 @@
     return reciters.find(r => r.id === state.reciter) || reciters[0];
   }
   function reciterName(r) { return arabicNames() ? r.name : r.en; }
+  // The name shown on the video: what the user typed, else «تلاوتي» (own recording),
+  // else the reciter's name.
+  function displayName() { return own.displayName ? own.displayName() : reciterName(reciterObj()); }
+  // Surah, first and last ayah, and whether the basmala is on: what a recording's
+  // sync points belong to.
+  function rangeKey() { return [state.surah, state.from, state.to, state.basmala && basmalaApplies()].join('|'); }
   function surahObj() { return surahs[state.surah - 1]; }
   // Undecorated name ("البقرة") from js/surah-map.js — the same list takrar.html shows.
   function surahPlain(s) {
@@ -435,10 +505,29 @@
   }
 
   function timelineKey() {
+    if (own.active()) return ['own', own.rec.id, rangeKey(), own.sig(own.entryNow())].join('|');
     return [reciterObj().folder, state.surah, state.from, state.to, state.basmala && basmalaApplies()].join('|');
   }
 
+  // The user's own recording: every ayah is a slice of the one decoded buffer.
+  async function buildOwnTimeline() {
+    const p = await own.prepare();
+    const key = timelineKey();               // after prepare: it may have just been split
+    if (timeline && timeline.key === key) return timeline;
+    const segs = segments();
+    let t = LEAD;
+    const items = segs.map((sg, i) => {
+      const s = own.slices(p.entry)[i];
+      const it = Object.assign({}, sg, { buffer: p.audio.buffer, offset: s.off, dur: s.dur, start: t, end: t + s.dur });
+      t = it.end;
+      return it;
+    });
+    timeline = { key, items, total: t + TAIL };
+    return timeline;
+  }
+
   async function buildTimeline(onProgress) {
+    if (own.active()) return buildOwnTimeline();
     const key = timelineKey();
     if (timeline && timeline.key === key) return timeline;
     const folder = reciterObj().folder;
@@ -485,38 +574,45 @@
     updateSummary();
   }
   let durApprox = false;   // long mode shows an estimate (file sizes), not decoded lengths
+  // What a displayed length belongs to: the recitation and the range. For an own recording
+  // this leaves out where its ayat were split (that is made while the length is worked out,
+  // and edited later), so a result is only dropped when the range or the source changed.
+  function durationKey() {
+    return own.active() ? ['own', own.rec.id, rangeKey()].join('|') : timelineKey();
+  }
+
   function updateDuration() {
     clearTimeout(durTimer);
     if (isLong()) { updateLongDuration(); return; }
     durApprox = false;
-    const key = timelineKey();
-    if (timeline && timeline.key === key) { durFor = key; durTotal = timeline.total; paintDuration('ok'); return; }
+    const dkey = durationKey();
+    if (timeline && timeline.key === timelineKey()) { durFor = dkey; durTotal = timeline.total; paintDuration('ok'); return; }
     durFor = '';
     paintDuration('wait');
     durTimer = setTimeout(async () => {
       try {
         const tl = await buildTimeline();
         // Switched to the long tab meanwhile: its own estimate owns the display now.
-        if (timelineKey() === key && !isLong()) { durFor = key; durTotal = tl.total; paintDuration('ok'); }
+        if (durationKey() === dkey && !isLong()) { durFor = dkey; durTotal = tl.total; paintDuration('ok'); }
       } catch {
-        if (timelineKey() === key && !isLong()) paintDuration('fail');
+        if (durationKey() === dkey && !isLong()) paintDuration('fail');
       }
     }, 400);
   }
 
   function updateLongDuration() {
-    const key = 'L|' + timelineKey();
+    const key = 'L|' + durationKey();
     durFor = '';
-    durApprox = true;
+    durApprox = !own.active();       // an own recording's length is exact, the reciters' is estimated
     paintDuration('wait');
     durTimer = setTimeout(async () => {
       try {
-        const total = await long.estimate(() => 'L|' + timelineKey() !== key || !isLong());
-        if ('L|' + timelineKey() !== key || !isLong()) return;
+        const total = await long.estimate(() => 'L|' + durationKey() !== key || !isLong());
+        if ('L|' + durationKey() !== key || !isLong()) return;
         if (total == null) { $('vmDurValue').textContent = '—'; return; }
         durFor = key; durTotal = total; paintDuration('ok');
       } catch {
-        if ('L|' + timelineKey() === key && isLong()) paintDuration('fail');
+        if ('L|' + durationKey() === key && isLong()) paintDuration('fail');
       }
     }, 400);
   }
@@ -800,7 +896,7 @@
     }
     c.fillStyle = 'rgba(255,255,255,0.75)';
     c.font = (base * 0.03) + 'px VMTajawal';
-    c.fillText(reciterName(reciterObj()), w / 2, y + base * 0.055);
+    c.fillText(displayName(), w / 2, y + base * 0.055);
     c.restore();
   }
 
@@ -942,7 +1038,9 @@
       const src = audioCtx().createBufferSource();
       src.buffer = it.buffer;
       out.forEach(node => src.connect(node));
-      src.start(t0 + it.start);
+      // The user's own recording: play just this ayah's slice of it.
+      if (it.offset != null) src.start(t0 + it.start, it.offset, it.dur);
+      else src.start(t0 + it.start);
       return src;
     });
   }
@@ -994,7 +1092,7 @@
     const range = state.from === state.to ? num(state.from) : num(state.from) + '–' + num(state.to);
     const name = arabicNames() ? surahPlain(s) : surahLatin(s);
     const fmt = isLong() ? '16:9 · 1080p' : { story: '9:16', square: '1:1', wide: '16:9' }[state.format];
-    const durKey = (isLong() ? 'L|' : '') + timelineKey();
+    const durKey = (isLong() ? 'L|' : '') + durationKey();
     $('vmSummary').textContent = name + ' · ' + range + ' · ' + fmt +
       (durFor && durFor === durKey ? ' · ' + (durApprox ? '≈ ' : '') + fmtDur(durTotal) : '');
   }
@@ -1020,7 +1118,7 @@
     } catch (e) {
       console.warn('[video-maker] audio load failed', e);
       setProgress(null);
-      setStatus(tr('vm_err_audio'), true);
+      setStatus(own.active() ? tr('vm_own_bad') : tr('vm_err_audio'), true);
       return null;
     }
   }
@@ -1345,8 +1443,10 @@
   function openPick(kind) {
     if (pickSheet) return;
     pickSheet = kind;
-    $('vm' + kind + 'Search').value = '';
-    if (kind === 'Surah') renderSurahList();
+    const searchBox = $('vm' + kind + 'Search');
+    if (searchBox) searchBox.value = '';
+    if (kind === 'Sync') own.openSync();
+    else if (kind === 'Surah') renderSurahList();
     else if (kind === 'Popular') renderPopularList();
     else if (kind === 'Search') renderSearchList();
     else renderReciterList();
@@ -1355,7 +1455,7 @@
     if (window.BackClose) BackClose.opened(closePick);
     // Long lists jump to the current choice; the popular sheet opens at the top
     // so its search box and category chips stay in view.
-    const sel = kind !== 'Popular' && $('vm' + kind + 'List').querySelector('.selected');
+    const sel = kind !== 'Popular' && kind !== 'Sync' && $('vm' + kind + 'List').querySelector('.selected');
     if (sel) sel.scrollIntoView({ block: 'center' });
   }
   // ---------- "✦ Popular" quick picks (js/popular-ayat.js) ----------
@@ -1444,6 +1544,7 @@
     $('vmPickOverlay').classList.remove('active');
     $('vm' + pickSheet + 'Sheet').classList.remove('active', 'searching');
     if (document.activeElement) document.activeElement.blur();
+    if (pickSheet === 'Sync') own.closeSync();
     pickSheet = null;
   }
   // Picking writes the hidden <select> and fires its change handler, so all
@@ -1668,6 +1769,7 @@
     updateSummary();
     updateDuration();
     renderIdle();
+    if (own.renderBox) own.renderBox();
     if (isLong()) refreshTemplateThumbs();
   }
 
@@ -1810,6 +1912,7 @@
     else window.addEventListener('resize', layoutStage);
     window.addEventListener('langchange', () => {
       fillSurahs(); fillReciters(); updatePreviewBtn(); updateSummary(); updateDuration(); renderIdle();
+      if (own.renderBox) own.renderBox();
       if (isLong()) { markTemplates(); refreshTemplateThumbs(); }
       if (pickSheet === 'Surah') renderSurahList();
       else if (pickSheet === 'Reciter') renderReciterList();
@@ -1846,9 +1949,16 @@
     const i18nReady = window.I18n ? I18n.init() : Promise.resolve();
     loadSettings();
     reciters = (window.EVERYAYAH_RECITERS || []).filter(r => STYLES.includes(r.style));
+    if (window.VMOwn && window.OwnRecitation) {
+      own = VMOwn({
+        state, $, tr, esc, arabicNames, arDigits, segments, ayahWords, rangeKey, reciterObj, reciterName,
+        setStatus, onChange: () => onChange(),
+        openSync: () => openPick('Sync'), closeSync: () => closePick(),
+      });
+    }
     if (window.VMLong && window.TV_TEMPLATES) {
       long = VMLong({
-        state, GRADIENTS, BRAND, appIcon, AUDIO_BASE,
+        state, GRADIENTS, BRAND, appIcon, AUDIO_BASE, own, displayName,
         tr, lang, arabicNames, arDigits, surahObj, reciterObj, reciterName, surahLatin,
         qfont: () => QFONT, segments, ayahWords, wrapWords, fillAyahLine, audioCtx, bgSrc,
         onAsset: () => { renderIdle(); if (isLong()) refreshTemplateThumbs(); },
@@ -1860,6 +1970,7 @@
     try {
       await Promise.all([loadQuran(), loadBackgrounds(), i18nReady]);
       await loadUserBackgrounds();
+      if (own.init) await own.init();
     } catch (e) {
       console.error('[video-maker] init failed', e);
       setStatus(tr('vm_err_audio'), true);
@@ -1881,6 +1992,7 @@
     applyStateToControls();
     clampRange('from');
     bindControls();
+    if (own.bindUi) own.bindUi();
     // Canvas text silently falls back to a system font if drawn before the
     // webfont is ready, so wait for both faces before the first frame.
     try { await Promise.all([document.fonts.load('40px ' + QFONT), document.fonts.load('40px VMTajawal')]); } catch (e) { /* fall through */ }
@@ -1893,7 +2005,7 @@
 
   // Bump BUILD whenever pages/video-maker.html starts depending on new script
   // features; the page reloads once with a fresh copy if it gets an older one.
-  const BUILD = 6;   // 6: long video tab (js/video-maker-long.js), 5: user's own backgrounds, 4: mushaf font + QPC Hafs text, 3: Quran search sheet (2: multi-picture slideshow)
+  const BUILD = 7;   // 7: own recording («تسجيلي») + editable reciter name, 6: long video tab (js/video-maker-long.js), 5: user's own backgrounds, 4: mushaf font + QPC Hafs text, 3: Quran search sheet (2: multi-picture slideshow)
   window.VM = { build: BUILD, state, renderFrame, buildTimeline, loadAyahAudio, exportVideo };
   init();
 })();

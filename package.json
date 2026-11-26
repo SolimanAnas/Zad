@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node tests/server.js",
     "bgs": "node scripts/gen-video-bgs.cjs",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:unit": "node tests/node/own-recitation.test.cjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0"

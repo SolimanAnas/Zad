@@ -10,6 +10,9 @@ Make Quran videos in the browser — nothing is uploaded anywhere.
   14 templates (10 painted backgrounds with the surah and reciter written into their plates, 4 ornament
   templates that work over any background). Long ayat shrink to fit and split into pages.
 
+Both tabs: **your own recording** («تسجيلي») — upload a recording of the range (MP3, M4A, WAV, OGG, up to 30 minutes)
+instead of choosing a reciter, and **edit the reciter name** shown on the video (for any recitation). See below.
+
 Both tabs: stroke + glow / glow / shadow / none text effect with a choice of glow and shadow colour, text
 colour and size, the user's own pictures and videos as backgrounds (kept on the device), the Quran text in the
 King Fahd Complex Hafs script, 42 reciters (everyayah.com), five interface languages (ar, en, tr, ur, ckb).
@@ -25,6 +28,27 @@ npm start            # http://localhost:8080  (any static server works: python3 
 
 Open `http://localhost:8080/` (it redirects to `pages/video-maker.html`). Use a secure origin
 (`localhost` or https) — WebCodecs and the service worker need one.
+
+## Your own recording («تسجيلي»)
+
+In step 2 choose **«تسجيلي الخاص»** and upload one recording that contains the range you chose, in order.
+It is kept on the device (IndexedDB) and never uploaded.
+
+A recording has no ayah timestamps, so the app proposes a split and you check it by ear:
+
+1. The recording is decoded once (48 kHz) and its loudness envelope is computed.
+2. The pauses between ayat give a first split: the N-1 longest pauses separate N ayat (`js/own-recitation.js`).
+   If the pauses can't be told apart, the time is shared by the length of each ayah's text instead.
+3. The **timing sheet** opens: a waveform with a marker at the start of each ayah (drag a marker, nudge it by
+   0.1 s, or set it to the playhead), the ayah being heard is highlighted while it plays, and the sheet says
+   how sure the split is.
+
+The boundaries are remembered per range (surah, first and last ayah, basmala), so a range already synced needs no work;
+a new range is split automatically and marked «راجع التوقيت» until you have looked at it. The video then plays and
+encodes slices of the one decoded recording — nothing is copied or downloaded, and a long video is exact (no «≈»).
+
+Limits: 30 minutes and 250 MB per recording (a decoded recording is held in memory while the video is made).
+The reciter-name field works with any recitation: leave it empty to show the reciter's own name (or «تلاوتي»).
 
 ## How the fast export works (long video)
 
@@ -48,6 +72,7 @@ and the Shorts tab always works that way).
 | `pages/video-maker.html` | the page |
 | `js/video-maker.js` | the Shorts tab, the shared pickers, data and text drawing |
 | `js/video-maker-long.js` | the Long video tab: layout, caching, preview, fast export |
+| `js/video-maker-own.js`, `js/own-recitation.js` | your own recording: storage, decoding, the timing sheet; the pause-based split (unit-tested) |
 | `js/tv-templates.js` | the template registry (positions are percentages of the 16:9 frame) |
 | `js/vendor/mp4-muxer.js` | MP4 writer (MIT) |
 | `images/tv-maker/` | long-video pictures — see its [README](images/tv-maker/README.md) |

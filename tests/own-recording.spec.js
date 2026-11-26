@@ -1,0 +1,178 @@
+// «تسجيلي»: the user's own recording as the recitation. A synthetic recording (7 bursts of
+// tone, 0.8 s apart, standing for the 7 ayat of Al-Fatihah) is uploaded; the app finds the
+// pauses, the user fixes a boundary in the sync sheet, and both the Shorts length and the
+// long video export follow it. Nothing is downloaded: the audio server is never called.
+const { test, expect } = require('@playwright/test');
+
+const BASE_URL = 'http://localhost:8080';
+test.use({ serviceWorkers: 'block', viewport: { width: 412, height: 915 } });
+
+const SR = 16000;
+const VOICE = [1.4, 2.2, 1.8, 3.0, 2.4, 1.6, 4.0];
+const GAP = 0.8, HEAD = 0.5, TAILSIL = 1.0;
+function recording(VOICE = [1.4, 2.2, 1.8, 3.0, 2.4, 1.6, 4.0]) {
+  const total = HEAD + VOICE.reduce((a, b) => a + b, 0) + GAP * (VOICE.length - 1) + TAILSIL;
+  const n = Math.round(total * SR), pcm = Buffer.alloc(n * 2);
+  let t = HEAD;
+  const starts = [];
+  for (const v of VOICE) {
+    starts.push(t);
+    const a = Math.round(t * SR), len = Math.round(v * SR);
+    for (let i = 0; i < len; i++) {
+      const env = Math.min(1, i / 400, (len - i) / 400) * (0.6 + 0.4 * Math.sin(i / 700));
+      pcm.writeInt16LE(Math.round(11000 * env * Math.sin(i * 0.13)), (a + i) * 2);
+    }
+    t += v + GAP;
+  }
+  const buf = Buffer.alloc(44 + pcm.length);
+  buf.write('RIFF', 0); buf.writeUInt32LE(36 + pcm.length, 4); buf.write('WAVEfmt ', 8); buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(SR, 24); buf.writeUInt32LE(SR * 2, 28);
+  buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write('data', 36); buf.writeUInt32LE(pcm.length, 40);
+  pcm.copy(buf, 44);
+  return { buf, starts, total };
+}
+const REC = recording();
+const SHORT_REC = recording([1.2, 1.5]);     // two ayat: for the real-time (Shorts) export
+
+function mp4Duration(buf) {
+  const at = buf.indexOf('mvhd');
+  const version = buf[at + 4];
+  if (version === 1) return Number(buf.readBigUInt64BE(at + 4 + 4 + 16 + 4)) / buf.readUInt32BE(at + 4 + 4 + 16);
+  return buf.readUInt32BE(at + 4 + 4 + 8 + 4) / buf.readUInt32BE(at + 4 + 4 + 8);
+}
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      if (sessionStorage.getItem('vmTestStarted')) return;
+      sessionStorage.setItem('vmTestStarted', '1');
+      localStorage.setItem('zad_lang', 'ar');
+      localStorage.removeItem('vm_settings');
+      indexedDB.deleteDatabase('vm-own-recitation');
+    } catch { /* storage blocked */ }
+  });
+  await page.route(url => !url.href.startsWith(BASE_URL), route => route.abort());
+});
+
+async function open(page, settings) {
+  if (settings) await page.addInitScript(s => { if (!sessionStorage.getItem('vmSeeded')) { sessionStorage.setItem('vmSeeded', '1'); localStorage.setItem('vm_settings', s); } }, JSON.stringify(settings));
+  await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+}
+const upload = page => page.setInputFiles('#vmOwnFile', { name: 'تلاوتي.wav', mimeType: 'audio/wav', buffer: REC.buf });
+
+test('upload: the pauses give the split, the sheet fixes it, the length follows', async ({ page }) => {
+  await open(page);
+  // The toggle shows the upload panel; the reciter stays until a file is in.
+  await page.locator('#vmSource [data-src="own"]').click();
+  await expect(page.locator('#vmOwnBox')).toBeVisible();
+  await expect(page.locator('#vmReciterBox')).toBeHidden();
+  await expect(page.locator('#vmOwnPick')).toBeVisible();
+  expect(await page.evaluate(() => VM.state.recSource)).toBe('reciter');
+  await page.locator('#vmSource [data-src="reciter"]').click();
+  await expect(page.locator('#vmReciterBox')).toBeVisible();
+  await page.locator('#vmSource [data-src="own"]').click();
+  await upload(page);
+  // The sheet opens on its own to check the split.
+  await expect(page.locator('#vmSyncSheet')).toHaveClass(/active/, { timeout: 30000 });
+  await expect(page.locator('#vmSyncList .sync-row')).toHaveCount(8, { timeout: 30000 });   // 7 ayat + the end
+  await expect(page.locator('#vmSyncStatus')).not.toHaveClass(/warn/);
+  const times = await page.locator('#vmSyncList .sync-row input').evaluateAll(els => els.map(e => parseFloat(e.value)));
+  REC.starts.forEach((s, i) => expect(Math.abs(times[i] - s)).toBeLessThan(0.45));
+  expect(await page.evaluate(() => VM.state.recSource)).toBe('own');
+
+  // Fix the third boundary by hand, then close.
+  await page.locator('#vmSyncList .sync-row[data-i="2"] input').fill('5.0');
+  await page.locator('#vmSyncList .sync-row[data-i="2"] input').dispatchEvent('change');
+  await expect(page.locator('#vmSyncList .sync-row[data-i="2"] input')).toHaveValue('5.0');
+  await page.locator('#vmSyncDone').click();
+  await expect(page.locator('#vmSyncSheet')).not.toHaveClass(/active/);
+  await expect(page.locator('#vmOwnStatus')).toHaveClass(/ok/);
+
+  // Shorts: the length is the recording from the first ayah to the end + lead-in + tail.
+  const first = times[0], end = times[7];
+  const expected = 0.5 + (end - first) + 1;
+  await expect(page.locator('#vmDurValue')).not.toHaveText('…', { timeout: 20000 });
+  const shown = (await page.textContent('#vmDurValue')).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).split(':');
+  expect(Math.abs((+shown[0] * 60 + +shown[1]) - expected)).toBeLessThan(1.1);
+
+  // It is remembered: after a reload the recording and its synced state are still there.
+  await page.reload({ waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  await expect(page.locator('#vmOwnBox')).toBeVisible();
+  await expect(page.locator('#vmOwnName')).toHaveText('تلاوتي.wav');
+  await expect(page.locator('#vmOwnStatus')).toHaveClass(/ok/);
+
+  // A different range has no sync yet: it is split again, and marked for review.
+  await page.fill('#vmTo', '5');
+  await page.locator('#vmTo').dispatchEvent('change');
+  await expect(page.locator('#vmOwnStatus')).toHaveClass(/warn/, { timeout: 30000 });
+
+  // Delete: back to the reciter list.
+  await page.locator('#vmOwnDel').click();
+  await expect(page.locator('#vmReciterBox')).toBeVisible();
+  await expect(page.locator('#vmOwnBox')).toBeHidden();
+  expect(await page.evaluate(() => VM.state.recSource)).toBe('reciter');
+});
+
+test('the reciter name can be edited and is used instead of the reciter', async ({ page }) => {
+  await open(page);
+  await expect(page.locator('#vmSheikh')).toHaveAttribute('placeholder', /العفاسي/);
+  await page.fill('#vmSheikh', 'الشيخ أحمد');
+  expect(await page.evaluate(() => VM.state.sheikh)).toBe('الشيخ أحمد');
+  // the caption on the Shorts video is drawn from it
+  await page.reload({ waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  await expect(page.locator('#vmSheikh')).toHaveValue('الشيخ أحمد');
+  await page.fill('#vmSheikh', '');
+  expect(await page.evaluate(() => VM.state.sheikh)).toBe('');
+});
+
+test('a long video is made from the uploaded recording', async ({ page }) => {
+  await open(page, { mode: 'long', surah: 1, from: 1, to: 7, tvTemplate: 'moonlit' });
+  const fast = await page.evaluate(() => !!(window.VideoEncoder && window.AudioEncoder));
+  test.skip(!fast, 'no WebCodecs in this browser');
+  await upload(page);
+  await expect(page.locator('#vmSyncList .sync-row')).toHaveCount(8, { timeout: 30000 });
+  await page.fill('#vmSheikh', 'تلاوتي بصوتي');     // while the sheet is open the page behind keeps its state
+  await page.locator('#vmSyncDone').click();
+  await expect(page.locator('#vmSyncSheet')).not.toHaveClass(/active/);
+  // exact length, no «≈»: an own recording needs no estimate
+  await expect(page.locator('#vmDurValue')).toHaveText(/^٠:٢[٢-٤]$/, { timeout: 20000 });
+  await page.locator('#vmExport').click();
+  await expect(page.locator('#vmResult')).toBeVisible({ timeout: 90000 });
+  const bytes = await page.evaluate(async () => Array.from(new Uint8Array(await (await fetch(document.getElementById('vmVideo').src)).arrayBuffer())));
+  const mp4 = Buffer.from(bytes);
+  expect(mp4.indexOf('ftyp')).toBe(4);
+  expect(mp4.indexOf('soun')).toBeGreaterThan(0);              // it has an audio track
+  const d = mp4Duration(mp4);
+  expect(d).toBeGreaterThan(22);
+  expect(d).toBeLessThan(25);
+});
+
+test('Shorts: the preview and the recorded video use the uploaded recording', async ({ page }) => {
+  test.setTimeout(90000);
+  await open(page, { mode: 'short', surah: 1, from: 1, to: 2 });
+  await page.setInputFiles('#vmOwnFile', { name: 'two.wav', mimeType: 'audio/wav', buffer: SHORT_REC.buf });
+  await expect(page.locator('#vmSyncList .sync-row')).toHaveCount(3, { timeout: 30000 });   // 2 ayat + the end
+  await page.locator('#vmSyncDone').click();
+  await expect(page.locator('#vmSyncSheet')).not.toHaveClass(/active/);
+  // 1.2 + 0.8 + 1.5 + a little around them, plus the lead-in and tail
+  await expect(page.locator('#vmDurValue')).toHaveText(/^٠:٠[٥-٧]$/, { timeout: 20000 });
+
+  // The preview plays and stops by itself at the end.
+  await page.locator('#vmPreview').click();
+  await expect(page.locator('#vmPreviewLabel')).toHaveText('إيقاف', { timeout: 20000 });
+  await expect(page.locator('#vmPreviewLabel')).toHaveText('معاينة', { timeout: 30000 });
+
+  // The recording is made in real time (about the length of the video).
+  await page.locator('#vmExport').click();
+  await expect(page.locator('#vmResult')).toBeVisible({ timeout: 60000 });
+  const info = await page.evaluate(async () => {
+    const v = document.getElementById('vmVideo');
+    await new Promise(r => (v.readyState >= 1 ? r() : v.addEventListener('loadedmetadata', r, { once: true })));
+    return { duration: v.duration, size: (await (await fetch(v.src)).blob()).size };
+  });
+  expect(info.size).toBeGreaterThan(10000);
+  if (isFinite(info.duration)) { expect(info.duration).toBeGreaterThan(4); expect(info.duration).toBeLessThan(9); }
+});
