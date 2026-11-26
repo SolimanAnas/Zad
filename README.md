@@ -87,6 +87,14 @@ Measured with software encoding: a 35-minute video in about 77 s. Audio is AAC w
 Opus-in-MP4 otherwise. Browsers without WebCodecs fall back to real-time recording (as long as the video itself,
 and the Shorts tab always works that way).
 
+## Design
+
+The page takes its look from the Zad icon: teal ink and gold leaf on a faint eight-point-star paper, with solid
+surfaces (no glass over photos) so text keeps its contrast. The preview sits in a domed, mihrab-like frame with a fine
+gold line; the one gold button is «إنشاء الفيديو». Light, dark and sepia themes share the same tokens (`:root` in
+`pages/video-maker.html`); every text/background pair is at least 4.5:1, the main controls are at least 44 px, focus is
+always visible and motion respects *reduce motion* — `tests/ux.spec.js` keeps these from slipping.
+
 ## Project layout
 
 | Path | What |
