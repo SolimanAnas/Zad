@@ -23,9 +23,22 @@ test('opens dark by default, and the header button switches to light and back', 
   await expect(page.locator('#vmThemeBtn')).toHaveAttribute('aria-pressed', 'false');
   await page.reload({ waitUntil: 'load' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');     // remembered
-  // the interface font is the bundled IBM Plex Sans Arabic
-  expect(await page.evaluate(() => document.fonts.check('16px "IBM Plex Sans Arabic"', 'الآيات'))).toBe(true);
-  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain('IBM Plex Sans Arabic');
+  // the bundled fonts: Cairo for titles and buttons, Tajawal for the text you read
+  const f = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return {
+      cairo: document.fonts.check('700 16px "Cairo"', 'الآيات'),
+      tajawal: document.fonts.check('500 14px "Tajawal"', 'الآيات'),
+      title: getComputedStyle(document.querySelector('.step-title')).fontFamily,
+      button: getComputedStyle(document.querySelector('#vmExport')).fontFamily,
+      label: getComputedStyle(document.querySelector('.controls-col .label')).fontFamily,
+    };
+  });
+  expect(f.cairo).toBe(true);
+  expect(f.tajawal).toBe(true);
+  expect(f.title.startsWith('Cairo')).toBe(true);
+  expect(f.button.startsWith('Cairo')).toBe(true);
+  expect(f.label.startsWith('Tajawal')).toBe(true);
 });
 
 test('the main controls are at least 44 px tall', async ({ page }) => {

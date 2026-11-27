@@ -6,13 +6,13 @@
 //     first time it is used.
 //   - Recitation MP3s: cache-first, filled on first use.
 // Bump VERSION whenever a cached file changes.
-const VERSION = 'qvm-v7';
+const VERSION = 'qvm-v8';
 const AUDIO = 'qvm-audio-v1';
 const CORE = [
   './', './index.html', './manifest.json',
   './pages/video-maker.html',
   './css/fonts.css', './css/svg-theme.css',
-  './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-400-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-400-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-500-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-500-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-600-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-600-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-arabic-700-normal.woff2', './fonts/ibm-plex-sans-arabic/ibm-plex-sans-arabic-latin-700-normal.woff2',
+  './fonts/cairo/cairo-arabic-wght-normal.woff2', './fonts/cairo/cairo-latin-wght-normal.woff2', './fonts/tajawal-arabic-500-normal.woff2', './fonts/tajawal-latin-500-normal.woff2',
   './fonts/Tajawal.ttf', './fonts/Tajawal-Bold.ttf', './fonts/uthmani-colored.ttf',
   './fonts/UthmanicHafs_V20.ttf', './fonts/Scheherazade.ttf', './fonts/Amiri.ttf',
   './data/quran.json', './data/quran-qpc.json',
