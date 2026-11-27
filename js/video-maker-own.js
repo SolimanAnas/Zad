@@ -315,7 +315,7 @@
       try {
         const p = await prepare();
         const e = p.entry;
-        work = { m: e.m.slice(), end: e.end, sel: 0, dirty: false, win: 30, follow: true, info: e };
+        work = { m: e.m.slice(), end: e.end, sel: 0, playing: -1, dirty: false, win: 30, follow: true, info: e };
         if (!outlineCache || outlineCache.id !== audio.id) outlineCache = { id: audio.id, bars: R.outline(audio.env, 1200) };
         const b = await audio.blob;
         url = URL.createObjectURL(b);
@@ -387,12 +387,60 @@
       list.innerHTML = segs.map((s, i) => row(i, s.num == null ? '﷽' : num(s.num), api.esc(words(s)), work.m[i], false)).join('') +
         row(segs.length, '■', api.esc(tr('vm_sync_end')), work.end, true);
       document.querySelectorAll('#vmSyncZoom button').forEach(b => b.classList.toggle('active', +b.dataset.win === work.win));
+      renderFocus();
       drawWave();
       updateTransport();
     }
 
     function markRows() {
       document.querySelectorAll('#vmSyncList .sync-row').forEach(r => r.classList.toggle('sel', +r.dataset.i === work.sel));
+    }
+    function markPlaying() {
+      document.querySelectorAll('#vmSyncList .sync-row').forEach(r => r.classList.toggle('playing', +r.dataset.i === work.playing));
+    }
+
+    // The ayah being checked: its text, its start, and the buttons to go on to the next one.
+    function renderFocus() {
+      if (!work) return;
+      const n = work.m.length, k = work.sel, segs = api.segments();
+      const isEnd = k >= n;
+      const seg = segs[Math.min(k, n - 1)];
+      $('vmSyncFocusCount').textContent = isEnd ? tr('vm_sync_end') : (seg && seg.num == null ? '﷽ ' : '') + tr('vm_sync_ayah', { i: num(k + 1), n: num(n) });
+      $('vmSyncFocusText').textContent = isEnd || !seg ? '' : api.ayahWords({ text: seg.text, num: null }).join(' ');
+      $('vmSyncFocusLabel').textContent = isEnd ? tr('vm_sync_end') : tr('vm_sync_this_start');
+      const f = $('vmSyncFTime');
+      if (document.activeElement !== f) f.value = timeOf(k).toFixed(1);
+      const mark = $('vmSyncMarkNext');
+      mark.hidden = isEnd;
+      $('vmSyncMarkNextLabel').textContent = k < n - 1 ? tr('vm_sync_next_here') : tr('vm_sync_end_here');
+      $('vmSyncPrev').disabled = k === 0;
+      $('vmSyncNextLabel').textContent = isEnd ? tr('vm_sync_done') : tr('vm_sync_next');
+    }
+    // Moves the check to ayah k (0..n, n = the end of the recitation) and plays it from its start.
+    function goTo(k, play) {
+      if (!work) return;
+      work.sel = Math.max(0, Math.min(work.m.length, k));
+      markRows();
+      renderFocus();
+      if (play) playFrom(Math.max(0, work.sel >= work.m.length ? work.end - 1.5 : timeOf(work.sel) - 0.3));
+      else drawWave();
+    }
+    // «The next ayah starts here»: the playhead is where the next ayah begins. The marker goes to
+    // the pause just before it (a tap lands a little after the voice starts), the check moves on
+    // to that ayah, and playback carries on, so a whole recording is one pass from start to end.
+    function markNext() {
+      if (!work || !el) return;
+      const n = work.m.length, k = work.sel;
+      if (k >= n) return;
+      const i = k + 1;
+      const t = el.currentTime;
+      setMarker(i, i === n ? t : R.snapOne(audio.env, R.HOP, t, work.m[k]).m);
+      work.sel = i;
+      markRows();
+      renderFocus();
+      if (i === n) el.pause();
+      updateTransport();
+      drawWave();
     }
 
     // ---- waveform ----
@@ -460,9 +508,10 @@
     function tick() {
       if (!work || !el) return;
       if (!el.paused) {
-        // the ayah being heard is the selected row, so you see what the voice says
+        // the check stays on the chosen ayah (so «next starts here» always means the one after
+        // it); the ayah the markers say is being heard gets its own mark in the list
         const k = Math.min(currentIndex(el.currentTime), work.m.length - 1);
-        if (k !== work.sel && el.currentTime < work.end) { work.sel = k; markRows(); const r = document.querySelector('#vmSyncList .sync-row.sel'); if (r) r.scrollIntoView({ block: 'nearest' }); }
+        if (k !== work.playing) { work.playing = k; markPlaying(); }
         if (el.currentTime >= work.end) el.pause();
       }
       drawWave();
@@ -479,16 +528,24 @@
     }
 
     // ---- editing ----
+    // Moves marker i (n = the end). It can't go before the one ahead of it; the ones after it
+    // are pushed along if it passes them, so going through the ayat in order never gets stuck.
     function setMarker(i, t) {
       const n = work.m.length;
-      const lo = i === 0 ? 0 : work.m[i - 1] + MIN_STEP;
-      const hi = i === n ? dur() : (i === n - 1 ? work.end : work.m[i + 1]) - MIN_STEP;
+      const all = work.m.concat([work.end]);
+      const lo = i === 0 ? 0 : all[i - 1] + MIN_STEP;
+      const hi = dur() - MIN_STEP * (n - i);          // room left for the ones after it
       t = Math.min(Math.max(t, lo), Math.max(lo, hi));
-      if (i === n) work.end = Math.min(t, dur()); else work.m[i] = t;
+      all[i] = t;
+      for (let j = i + 1; j <= n; j++) if (all[j] < all[j - 1] + MIN_STEP) all[j] = all[j - 1] + MIN_STEP;
+      work.m = all.slice(0, n);
+      work.end = Math.min(all[n], dur());
       work.dirty = true;
-      const input = document.querySelector('#vmSyncList .sync-row[data-i="' + i + '"] input');
-      if (input && document.activeElement !== input) input.value = t.toFixed(1);
+      document.querySelectorAll('#vmSyncList .sync-row input').forEach(inp => {
+        if (document.activeElement !== inp) inp.value = all[+inp.closest('.sync-row').dataset.i].toFixed(1);
+      });
       syncStatusLine();
+      renderFocus();
       drawWave();
     }
     const timeOf = i => (i === work.m.length ? work.end : work.m[i]);
@@ -504,7 +561,7 @@
         const i = +rowEl.dataset.i;
         const act = e.target.closest('[data-act]');
         if (e.target.tagName === 'INPUT') return;
-        work.sel = i; markRows();
+        work.sel = i; markRows(); renderFocus();
         if (act) {
           const a = act.dataset.act;
           if (a === 'play') playFrom(Math.max(0, timeOf(i) - 0.3));
@@ -540,6 +597,37 @@
         renderSync();
       };
       $('vmSyncDone').onclick = () => api.closeSync();
+      // the guided pass
+      $('vmSyncMarkNext').onclick = markNext;
+      $('vmSyncPrev').onclick = () => { if (work) goTo(work.sel - 1, true); };
+      $('vmSyncFromStart').onclick = () => { if (work) goTo(work.sel, true); };
+      $('vmSyncNext').onclick = () => {
+        if (!work) return;
+        if (work.sel >= work.m.length) api.closeSync();     // past the end of the recitation: done
+        else goTo(work.sel + 1, true);
+      };
+      $('vmSyncFMinus').onclick = () => { if (work) setMarker(work.sel, timeOf(work.sel) - 0.1); };
+      $('vmSyncFPlus').onclick = () => { if (work) setMarker(work.sel, timeOf(work.sel) + 0.1); };
+      $('vmSyncFHere').onclick = () => { if (work && el) setMarker(work.sel, el.currentTime); };
+      $('vmSyncFTime').onchange = e => {
+        if (!work) return;
+        const v = parseFloat(e.target.value);
+        if (isFinite(v)) setMarker(work.sel, v);
+        e.target.value = timeOf(work.sel).toFixed(1);
+      };
+      // keyboard: Enter / Space = the next ayah starts here, arrows = previous / next ayah
+      document.addEventListener('keydown', e => {
+        if (!work || !$('vmSyncSheet').classList.contains('active')) return;
+        const tag = e.target && e.target.tagName;
+        if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SUMMARY') return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markNext(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          const forward = (e.key === 'ArrowLeft') === (document.documentElement.dir === 'rtl');
+          if (forward && work.sel < work.m.length) goTo(work.sel + 1, true);
+          else if (!forward) goTo(work.sel - 1, true);
+        }
+      });
       // waveform: tap = move the playhead (or select a marker), drag a marker = move it
       const cv = $('vmSyncWave');
       let drag = -1;
@@ -553,7 +641,7 @@
       cv.addEventListener('pointerdown', ev => {
         if (!work) return;
         drag = nearest(ev);
-        if (drag >= 0) { work.sel = drag; markRows(); cv.setPointerCapture(ev.pointerId); work.follow = false; }
+        if (drag >= 0) { work.sel = drag; markRows(); renderFocus(); cv.setPointerCapture(ev.pointerId); work.follow = false; }
         else if (el) { el.currentTime = Math.min(dur(), Math.max(0, timeAt(ev))); work.follow = false; updateTransport(); }
         drawWave();
       });
