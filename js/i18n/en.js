@@ -963,6 +963,7 @@ export default {
   'card_video_maker': "Video Maker",
   'vm_meta_title': "Ayah Video Maker — Zad Al-Muslim",
   'vm_title': "Ayah Video Maker",
+  'vm_theme': "Dark mode",
   'vm_surah': "Surah",
   'vm_from': "From ayah",
   'vm_to': "To ayah",

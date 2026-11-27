@@ -89,11 +89,12 @@ and the Shorts tab always works that way).
 
 ## Design
 
-The page takes its look from the Zad icon: teal ink and gold leaf on a faint eight-point-star paper, with solid
-surfaces (no glass over photos) so text keeps its contrast. The preview sits in a domed, mihrab-like frame with a fine
-gold line; the one gold button is «إنشاء الفيديو». Light, dark and sepia themes share the same tokens (`:root` in
-`pages/video-maker.html`); every text/background pair is at least 4.5:1, the main controls are at least 44 px, focus is
-always visible and motion respects *reduce motion* — `tests/ux.spec.js` keeps these from slipping.
+A video-editor surface (in the spirit of CapCut or VN): neutral near-black, so the video preview is the colour on
+screen, with the gold from the app icon as the only accent (the main button and selected states). It opens dark; the
+header button switches to a light version that follows the same rules (a sepia version exists for the shared theme
+setting). The interface font is IBM Plex Sans Arabic, bundled for offline use. Sections are marked with line icons,
+surfaces are flat (no glass, no shadows). Every text/background pair is at least 4.5:1, the main controls are at
+least 44 px, focus is always visible and motion respects *reduce motion* — `tests/ux.spec.js` keeps these from slipping.
 
 ## Project layout
 
@@ -127,6 +128,7 @@ picture to `sw.js` only if you want it precached (everything is cached on first 
   with the King Fahd Complex (QPC Hafs) encoding in `data/quran-qpc.json`, checked against it when the page loads.
 - Recitations are streamed from [everyayah.com](https://everyayah.com).
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) by Vanilagy, MIT.
+- [IBM Plex Sans Arabic](https://github.com/IBM/plex) by IBM, SIL Open Font License 1.1 (`fonts/ibm-plex-sans-arabic/OFL.txt`).
 - Ornaments and painted backgrounds: supplied for the project.
 
 ## License

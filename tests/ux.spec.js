@@ -11,9 +11,25 @@ test.beforeEach(async ({ page }) => {
 
 const TARGETS = ['#vmModeTabs [data-mode="short"]', '#vmModeTabs [data-mode="long"]', '#vmSearchBtn', '#vmPopularBtn',
   '#vmSurahBtn', '.stepper button', '#vmReciterBtn', '#vmSource [data-src="own"]', '#vmFormat button',
-  '#vmTextFx button', '#vmPreview', '#vmExport', '.header .icon-btn'];
+  '#vmTextFx button', '#vmPreview', '#vmExport', '.header .icon-btn', '#vmThemeBtn'];
+
+test('opens dark by default, and the header button switches to light and back', async ({ page }) => {
+  await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('#vmThemeBtn')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#vmThemeBtn').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('#vmThemeBtn')).toHaveAttribute('aria-pressed', 'false');
+  await page.reload({ waitUntil: 'load' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');     // remembered
+  // the interface font is the bundled IBM Plex Sans Arabic
+  expect(await page.evaluate(() => document.fonts.check('16px "IBM Plex Sans Arabic"', 'الآيات'))).toBe(true);
+  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain('IBM Plex Sans Arabic');
+});
 
 test('the main controls are at least 44 px tall', async ({ page }) => {
+  // (the theme button joins the header's language button)
   await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
   await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
   for (const sel of TARGETS) {
@@ -42,12 +58,15 @@ for (const theme of ['light', 'dark', 'sepia']) {
       return {
         tab: pair('#vmModeTabs button.active'),
         cta: pair('#vmExport'),
-        // the number sits on a light tint of the card: measure against the card itself
-        step: ratio(rgb(getComputedStyle(document.querySelector('.step-num')).color), rgb(getComputedStyle(document.querySelector('.step-num').closest('.card')).backgroundColor)),
+        // secondary text (field labels) on the section it sits on
+        label: ratio(rgb(getComputedStyle(document.querySelector('.controls-col .label')).color), rgb(getComputedStyle(document.querySelector('.controls-col .label').closest('.card')).backgroundColor)),
+        // the selected format: accent text on the field it sits on
+        format: ratio(rgb(getComputedStyle(document.querySelector('#vmFormat button.active')).color), rgb(getComputedStyle(document.querySelector('#vmFormat button:not(.active)')).backgroundColor)),
       };
     });
     expect(ratios.tab, 'active tab').toBeGreaterThanOrEqual(4.5);
     expect(ratios.cta, 'create button').toBeGreaterThanOrEqual(4.5);
-    expect(ratios.step, 'step number').toBeGreaterThanOrEqual(4.5);
+    expect(ratios.label, 'field labels').toBeGreaterThanOrEqual(4.5);
+    expect(ratios.format, 'selected format').toBeGreaterThanOrEqual(4.5);
   });
 }

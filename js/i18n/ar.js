@@ -963,6 +963,7 @@ export default {
   'card_video_maker': "صانع الفيديو",
   'vm_meta_title': "صانع فيديو الآيات — زاد المسلم",
   'vm_title': "صانع فيديو الآيات",
+  'vm_theme': "الوضع الليلي",
   'vm_surah': "السورة",
   'vm_from': "من آية",
   'vm_to': "إلى آية",

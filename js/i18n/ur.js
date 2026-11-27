@@ -935,6 +935,7 @@ export default {
   'card_video_maker': "ویڈیو میکر",
   'vm_meta_title': "آیات ویڈیو میکر — زاد المسلم",
   'vm_title': "آیات ویڈیو میکر",
+  'vm_theme': "ڈارک موڈ",
   'vm_surah': "سورت",
   'vm_from': "آیت سے",
   'vm_to': "آیت تک",

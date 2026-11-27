@@ -935,6 +935,7 @@ export default {
   'card_video_maker': "Video Oluşturucu",
   'vm_meta_title': "Ayet Video Oluşturucu — Zad Al-Muslim",
   'vm_title': "Ayet Video Oluşturucu",
+  'vm_theme': "Karanlık mod",
   'vm_surah': "Sure",
   'vm_from': "Başlangıç ayeti",
   'vm_to': "Bitiş ayeti",

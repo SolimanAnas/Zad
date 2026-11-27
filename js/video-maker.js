@@ -109,7 +109,7 @@
   // can predate these keys — without this, buttons would show 'vm_stop' etc.
   const FALLBACK = {
     ar: {
-      vm_title: 'صانع فيديو الآيات', vm_preview: 'معاينة', vm_stop: 'إيقاف', vm_done: 'الفيديو جاهز',
+      vm_title: 'صانع فيديو الآيات', vm_theme: 'الوضع الليلي', vm_preview: 'معاينة', vm_stop: 'إيقاف', vm_done: 'الفيديو جاهز',
       vm_loading: 'جارٍ تحميل التلاوة...', vm_keep_open: 'جارٍ إنشاء الفيديو — أبقِ هذه الشاشة مفتوحة',
       vm_max_ayat: 'الحد الأقصى {n} آية في الفيديو', vm_err_audio: 'تعذّر تحميل التلاوة — تحقق من الاتصال',
       vm_err_unsupported: 'متصفحك لا يدعم إنشاء الفيديو — جرّب Chrome أو Safari الحديث',
@@ -197,7 +197,7 @@
       vm_err_encode: 'تعذّر إنشاء الفيديو — حاول مرة أخرى',
     },
     en: {
-      vm_title: 'Ayah Video Maker', vm_preview: 'Preview', vm_stop: 'Stop', vm_done: 'Video ready',
+      vm_title: 'Ayah Video Maker', vm_theme: 'Dark mode', vm_preview: 'Preview', vm_stop: 'Stop', vm_done: 'Video ready',
       vm_loading: 'Loading recitation...', vm_keep_open: 'Creating video — keep this screen open',
       vm_max_ayat: 'Maximum {n} ayat per video', vm_err_audio: "Couldn't load the recitation — check your connection",
       vm_err_unsupported: "Your browser can't record video — try a recent Chrome or Safari",
@@ -1962,8 +1962,6 @@
   function updateSteps() {
     const ownBg = isLong() && !!long.template().background;
     $('vmBgCard').hidden = ownBg;
-    $('vmBgNum').textContent = isLong() ? '4' : '3';
-    $('vmStyleNum').textContent = !isLong() ? '4' : ownBg ? '4' : '5';
   }
   function markTemplates() {
     document.querySelectorAll('#vmTemplates .tpl-thumb').forEach(b => {
@@ -2041,6 +2039,15 @@
     document.querySelectorAll('#vmHalos .swatch').forEach(s => { s.onclick = () => setHalo(s.dataset.halo); });
     $('vmHalo').oninput = () => setHalo($('vmHalo').value);
     $('vmPreview').onclick = togglePreview;
+    const markTheme = () => $('vmThemeBtn').setAttribute('aria-pressed', window.ThemeManager && ThemeManager.get() === 'dark' ? 'true' : 'false');
+    markTheme();
+    $('vmThemeBtn').onclick = () => {
+      if (!window.ThemeManager) return;
+      ThemeManager.set(ThemeManager.get() === 'dark' ? 'light' : 'dark');
+      markTheme();
+      renderIdle();
+      if (isLong()) refreshTemplateThumbs();
+    };
     // Tapping the video itself plays/stops the preview.
     $('vmStage').onclick = () => { if (!busy) togglePreview(); };
     $('vmFullscreen').onclick = e => { e.stopPropagation(); toggleFullscreen(); };
@@ -2094,6 +2101,9 @@
   }
 
   async function init() {
+    // The studio look is dark first: without a saved choice the page opens dark;
+    // the header button switches between dark and light.
+    try { if (!localStorage.getItem('themeMode')) localStorage.setItem('themeMode', 'dark'); } catch (e) { /* storage blocked */ }
     if (window.ThemeManager) ThemeManager.init();
     const i18nReady = window.I18n ? I18n.init() : Promise.resolve();
     loadSettings();
