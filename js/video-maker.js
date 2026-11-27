@@ -61,6 +61,7 @@
     bg: 'g0',            // 'g<i>' = built-in gradient, 'i:<file>' = image
     format: 'story',
     motion: true,       // random zoom/pan of the background, re-rolled per clip
+    pingPong: false,    // background videos run forward then backward (no cut at the loop point)
     multiBg: false,     // slideshow: several pictures change during the clip
     bgs: [],            // picked pictures in order ('i:<file>'), used when multiBg is on
     fontMul: 1,
@@ -163,6 +164,11 @@
       vm_sync_next: 'التالية',
       vm_sync_from_start: 'استمع من البداية',
       vm_sync_next_here: 'الآية التالية تبدأ هنا',
+      vm_sync_follow: 'زامن الآيات التالية تلقائياً',
+      vm_sync_followed: 'ضُبطت الآيات {a}–{b} تلقائياً من هذه العلامة',
+      vm_sync_followed_one: 'ضُبطت الآية {a} تلقائياً من هذه العلامة',
+      vm_pingpong: 'تكرار الفيديو ذهاباً وإياباً',
+      vm_pingpong_desc: 'يعمل الفيديو للأمام ثم للخلف فلا يظهر قطع عند إعادته',
       vm_sync_end_here: 'نهاية التلاوة هنا',
       vm_sync_this_start: 'بداية هذه الآية',
       vm_sync_all_ayat: 'كل الآيات',
@@ -261,6 +267,11 @@
       vm_sync_next: 'Next',
       vm_sync_from_start: 'Listen from the start',
       vm_sync_next_here: 'Next ayah starts here',
+      vm_sync_follow: 'Sync the following ayat automatically',
+      vm_sync_followed: 'Ayat {a}–{b} were synced from this marker',
+      vm_sync_followed_one: 'Ayah {a} was synced from this marker',
+      vm_pingpong: 'Loop video forward and back',
+      vm_pingpong_desc: 'The video plays forward then backward, so there is no cut when it repeats',
       vm_sync_end_here: 'Recitation ends here',
       vm_sync_this_start: 'Start of this ayah',
       vm_sync_all_ayat: 'All ayat',
@@ -354,6 +365,7 @@
     if (!Array.isArray(state.bgs)) state.bgs = [];
     state.bgs = state.bgs.filter(id => typeof id === 'string' && id.startsWith('i:')).slice(0, MAX_SLIDES);
     state.multiBg = !!state.multiBg;
+    state.pingPong = state.pingPong === true;
     if (!TEXT_FX.includes(state.textFx)) state.textFx = 'strokeglow';
     if (state.halo !== 'auto' && !/^#[0-9a-f]{6}$/i.test(String(state.halo))) state.halo = 'auto';
     if (state.mode !== 'long') state.mode = 'short';
@@ -1937,9 +1949,9 @@
     selectBackground(id);
   }
 
-  function selectBackground(id) {
+  function selectBackground(id, reload) {
     if (/^[iv]:/.test(id) && !bgImages.includes(id.slice(2))) id = 'g0';
-    if (bgVideo && state.bg !== id) {
+    if (bgVideo && (state.bg !== id || reload)) {
       if (loopJob) loopJob.cancelled = true;
       bgVideo.pause();
       bgVideo.removeAttribute('src');
@@ -1969,7 +1981,9 @@
       v.addEventListener('loadeddata', () => { if (state.bg === id && !playing) v.currentTime = 0.5; renderIdle(); });
       v.addEventListener('seeked', renderIdle);
       const file = id.slice(2);
-      if (isUserBg(file)) {
+      if (!state.pingPong) {
+        v.src = bgSrc(file);                  // the plain loop (the setting is off)
+      } else if (isUserBg(file)) {
         v.src = bgSrc(file);
         loopFor(id, file, v);                 // its forward-and-back clip is made in the background
       } else {
@@ -2104,6 +2118,11 @@
       };
     });
     $('vmMotion').onchange = () => { state.motion = $('vmMotion').checked; onChange(); };
+    $('vmPingPong').onchange = () => {
+      state.pingPong = $('vmPingPong').checked;
+      saveSettings();
+      if (state.bg.startsWith('v:')) selectBackground(state.bg, true);
+    };
     $('vmBgFile').onchange = e => { addUserFiles(e.target.files); e.target.value = ''; };
     $('vmMultiBg').onchange = () => setMultiBg($('vmMultiBg').checked);
     document.querySelectorAll('.stepper button').forEach(b => {
@@ -2193,6 +2212,7 @@
     document.querySelectorAll('#vmColors .swatch').forEach(s => s.classList.toggle('active', s.dataset.color === state.color));
     document.querySelectorAll('#vmFormat button').forEach(b => b.classList.toggle('active', b.dataset.fmt === state.format));
     $('vmMotion').checked = state.motion;
+    $('vmPingPong').checked = state.pingPong;
     $('vmMultiBg').checked = state.multiBg;
     $('vmFrom').value = state.from;
     $('vmTo').value = state.to;

@@ -140,7 +140,14 @@
   }
 
   // Voice activity of an envelope: the same threshold autoSplit uses.
+  const activityCache = new WeakMap();      // env -> activity (the sheet asks again on every edit)
   function activity(env) {
+    if (typeof env === 'object' && activityCache.has(env)) return activityCache.get(env);
+    const r = activityOf(env);
+    if (typeof env === 'object') activityCache.set(env, r);
+    return r;
+  }
+  function activityOf(env) {
     const floor = percentile(env, 0.1), speech = percentile(env, 0.9);
     const contrast = speech - floor;
     const thr = floor + contrast * 0.3;
@@ -211,7 +218,64 @@
     return { markers: normalizeMarkers(markers, Math.max(end, markers[markers.length - 1] + MIN_GAP * 2), MIN_GAP), end, snapped };
   }
 
-  const api = { HOP, MIN_GAP, envelopeDb, autoSplit, proportional, normalizeMarkers, outline, percentile, snapTaps, snapOne };
+  // The ayat after one the user has fixed by hand, split again from it.
+  //   a: where the fixed ayah starts   b: where the next fixed marker (or the end) is
+  //   weights: the length of the text of each ayah from the fixed one up to b (count = weights.length)
+  // Returns count markers, the first one = a. The pauses between a and b are the candidates;
+  // the ones chosen are the longest that also fall near where the text lengths say the ayat
+  // should change (a dynamic programme over the pauses, in order). Too few pauses: the time
+  // is shared by text length.
+  function resplit(env, hop, a, b, weights) {
+    const h = hop || HOP;
+    const count = weights.length;
+    if (count <= 1) return [a];
+    const { active } = activity(env);
+    // the voice of the fixed ayah starts after a: a pause before it belongs to the fixed marker
+    let onset = Math.ceil(a / h);
+    while (onset < active.length && onset * h < b && !active[onset]) onset++;
+    const minLen = Math.ceil(0.12 / h);
+    const cands = [];
+    for (let i = onset; i * h < b && i < active.length;) {
+      if (active[i]) { i++; continue; }
+      let j = i;
+      while (j < active.length && !active[j]) j++;
+      if (j - i >= minLen) {
+        const ga = i * h, gb = j * h;
+        const m = Math.max(ga + (gb - ga) * 0.5, gb - LEAD_IN);
+        if (m > a + MIN_GAP && m < b - MIN_GAP && gb < b) cands.push({ m, len: gb - ga });
+      }
+      i = j;
+    }
+    const k = count - 1;                                   // boundaries to place
+    const total = weights.reduce((x, y) => x + y, 0) || 1;
+    const expect = [];
+    let acc = 0;
+    for (let q = 0; q < k; q++) { acc += weights[q]; expect.push(a + (b - a) * acc / total); }
+    if (cands.length < k) return normalizeMarkers(proportional(a, b, weights), b, MIN_GAP);
+    // dp[q][g]: best score with boundary q at candidate g
+    const avg = (b - a) / count;
+    const score = (q, g) => Math.min(cands[g].len, 1.2) / 1.2 - 0.15 * Math.abs(cands[g].m - expect[q]) / avg;
+    const G = cands.length;
+    let prev = new Float64Array(G), from = [];
+    for (let g = 0; g < G; g++) prev[g] = score(0, g);
+    for (let q = 1; q < k; q++) {
+      const cur = new Float64Array(G).fill(-Infinity), back = new Int32Array(G).fill(-1);
+      let best = -Infinity, bestAt = -1;
+      for (let g = q; g < G; g++) {
+        if (prev[g - 1] > best) { best = prev[g - 1]; bestAt = g - 1; }
+        if (bestAt >= 0) { cur[g] = best + score(q, g); back[g] = bestAt; }
+      }
+      from.push(back);
+      prev = cur;
+    }
+    let g = -1, best = -Infinity;
+    for (let x = 0; x < G; x++) if (prev[x] > best) { best = prev[x]; g = x; }
+    const picks = [g];
+    for (let q = k - 1; q >= 1; q--) { g = from[q - 1][g]; picks.unshift(g); }
+    return normalizeMarkers([a].concat(picks.map(x => cands[x].m)), b, MIN_GAP);
+  }
+
+  const api = { HOP, MIN_GAP, resplit, envelopeDb, autoSplit, proportional, normalizeMarkers, outline, percentile, snapTaps, snapOne };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.OwnRecitation = api;
 })(typeof window !== 'undefined' ? window : globalThis);

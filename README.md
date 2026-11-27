@@ -46,6 +46,11 @@ A recording has no ayah timestamps, so the app proposes a split and you check it
    nudged by 0.1 s or set to the playhead, and the last step marks where the recitation ends. Moving a marker past the
    ones after it pushes them along, so a pass from start to end never gets stuck. The full list, the waveform
    (drag a marker) and the split's confidence stay available.
+4. **Fixing one ayah syncs the ones after it.** A marker you place by hand is kept; the guesses after it (up to the
+   next one you placed) are worked out again from it, choosing the longest pauses near where the text lengths say
+   the ayat change (`resplit` in `js/own-recitation.js`). So one pause the split missed in the middle means fixing
+   one ayah, not every ayah after it. On the waveform, guesses are dashed and hand-placed markers solid;
+   «زامن الآيات التالية تلقائياً» works out all the ayat after the selected one again, the hand-placed ones too.
 
 The boundaries are remembered per range (surah, first and last ayah, basmala), so a range already synced needs no work;
 a new range is split automatically and marked «راجع التوقيت» until you have looked at it. The video then plays and
@@ -93,7 +98,8 @@ and the Shorts tab always works that way).
 
 ## Background videos loop forward and back
 
-A clip a few seconds long rarely ends where it began, so a plain loop shows a cut. Every background video here
+A clip a few seconds long rarely ends where it began, so a plain loop shows a cut. With the setting
+**«تكرار الفيديو ذهاباً وإياباً»** on (in the background card; off by default), a background video
 plays forward and then the same frames backward (0 s → 10 s → 0 s → 10 s …), so the picture at the restart is the one
 it just left. The two turning frames are not repeated, so nothing stutters, and the export uses the same clip, so the
 video you save loops the same way.

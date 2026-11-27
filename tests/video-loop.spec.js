@@ -1,4 +1,5 @@
-// Background videos loop forward then backward (0 s -> 10 s -> 0 s -> ...), with no cut.
+// Background videos loop forward then backward (0 s -> 10 s -> 0 s -> ...), with no cut, when
+// the «loop forward and back» setting is on (it is off by default: the plain loop).
 //   - the built-in clips ship as <name>.pp.mp4 (scripts/gen-pingpong.cjs): the page plays them,
 //     and falls back to the original if one is missing;
 //   - a video the user adds gets its forward-and-back clip made in the browser (js/video-pingpong.js).
@@ -24,6 +25,7 @@ test.beforeEach(async ({ page }) => {
       sessionStorage.setItem('vmTestStarted', '1');
       localStorage.setItem('zad_lang', 'ar');
       localStorage.removeItem('vm_settings');
+      if (!/default/.test(document.title + location.hash)) localStorage.setItem('vm_settings', JSON.stringify({ pingPong: true }));
       indexedDB.deleteDatabase('vm-user-backgrounds');
       indexedDB.deleteDatabase('vm-pingpong');
     } catch { /* storage blocked */ }
@@ -65,6 +67,28 @@ async function frameDiff(page, t1, t2) {
     return s / (A.length / 4) / 3;
   }, [t1, t2]);
 }
+
+test('the setting is off by default: the original loops; switching it on plays the forward-and-back clip', async ({ page }) => {
+  await page.goto(`${BASE_URL}/pages/video-maker.html#default`, { waitUntil: 'load' });
+  await expect(page.locator('#vmBgs .bg-add')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('#vmPingPong')).not.toBeChecked();
+  await page.locator('#vmBgs [data-bg="v:v4.mp4"]').click();
+  await expect.poll(() => page.evaluate(() => VM.bgVideo && VM.bgVideo.src)).toMatch(/\/v4\.mp4$/);
+  await expect.poll(() => duration(page), { timeout: 20000 }).toBeGreaterThan(9);
+  expect(await duration(page)).toBeLessThan(11);
+  await page.locator('#vmPingPong').check({ force: true });
+  await expect.poll(() => page.evaluate(() => VM.bgVideo && VM.bgVideo.src)).toMatch(/v4\.pp\.mp4$/);
+  await expect.poll(() => duration(page), { timeout: 20000 }).toBeGreaterThan(19.5);
+  expect(await page.evaluate(() => VM.state.pingPong)).toBe(true);
+  // and off again
+  await page.locator('#vmPingPong').uncheck({ force: true });
+  await expect.poll(() => page.evaluate(() => VM.bgVideo && VM.bgVideo.src)).toMatch(/\/v4\.mp4$/);
+  // an added video makes no clip while it is off
+  await page.setInputFiles('#vmBgFile', path.join(BG, 'v4.mp4'));
+  await expect.poll(() => page.evaluate(() => VM.state.bg), { timeout: 30000 }).toMatch(/^v:user:.+\.mp4$/);
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => VM.loopJob && VM.loopJob.id === VM.state.bg)).toBeFalsy();
+});
 
 test('a built-in video plays its forward-and-back clip', async ({ page }) => {
   await open(page);
