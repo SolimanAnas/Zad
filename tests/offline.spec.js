@@ -10,7 +10,7 @@ test('after the first visit the page opens with no connection', async ({ page, c
   await page.evaluate(() => navigator.serviceWorker.ready);
   await expect.poll(() => page.evaluate(async () => (await caches.keys()).length)).toBeGreaterThan(0);
   await expect.poll(() => page.evaluate(async () => {
-    const c = await caches.open('qvm-v8');
+    const c = await caches.open('qvm-v9');
     return !!(await c.match('/data/quran.json')) && !!(await c.match('/js/video-maker-long.js'));
   })).toBe(true);
 

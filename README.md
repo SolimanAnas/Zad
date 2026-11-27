@@ -130,7 +130,7 @@ picture to `sw.js` only if you want it precached (everything is cached on first 
 - Recitations are streamed from [everyayah.com](https://everyayah.com).
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) by Vanilagy, MIT.
 - [Cairo](https://github.com/Gue3bara/Cairo) and [Tajawal](https://github.com/boutrosfonts/Tajawal), SIL Open Font License 1.1 (`fonts/cairo/OFL.txt`, `fonts/Tajawal-OFL.txt`).
-- Ornaments and painted backgrounds: supplied for the project.
+- Ornaments, painted backgrounds, the app icon (`icons/source/`) and the misty-lake background (`images/video-maker/31.webp`): supplied for the project.
 
 ## License
 
