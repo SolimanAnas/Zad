@@ -503,12 +503,13 @@
       c.clearRect(0, 0, w, h);
       const v = view(), d = dur(), bars = outlineCache.bars;
       const css = getComputedStyle(document.documentElement);
-      const accent = (css.getPropertyValue('--accent-main') || '#10b981').trim() || '#10b981';
-      const text = (css.getPropertyValue('--text-secondary') || '#888').trim() || '#888';
+      const tok = (name, fallback) => (css.getPropertyValue(name) || '').trim() || fallback;
+      const accent = tok('--accent-main', '#F2B33D'), text = tok('--text-secondary', '#A1A1AA');
+      const endColor = tok('--danger', '#F87171'), headColor = tok('--text-primary', '#F4F4F5');
       const x = t => (t - v.a) / (v.b - v.a) * w;
       // bars
-      c.fillStyle = accent;
-      c.globalAlpha = 0.75;
+      c.fillStyle = text;            // neutral: the gold is kept for the selected marker
+      c.globalAlpha = 0.55;
       const step = 3;
       for (let px = 0; px < w; px += step) {
         const t0 = v.a + px / w * (v.b - v.a), t1 = v.a + (px + step) / w * (v.b - v.a);
@@ -524,7 +525,7 @@
       all.forEach((t, i) => {
         if (t < v.a - 0.01 || t > v.b + 0.01) return;
         const px = x(t), sel = i === work.sel;
-        c.strokeStyle = i === work.m.length ? '#e11d48' : (sel ? '#f59e0b' : text);
+        c.strokeStyle = i === work.m.length ? endColor : (sel ? accent : text);
         c.lineWidth = sel ? 3 : 1.5;
         c.setLineDash(i < work.m.length && !work.fixed.has(i) ? [4, 3] : []);     // dashed = a guess
         c.beginPath(); c.moveTo(px, 14); c.lineTo(px, h); c.stroke();
@@ -537,7 +538,7 @@
       // playhead
       if (el) {
         const px = x(el.currentTime);
-        if (px >= 0 && px <= w) { c.strokeStyle = '#2563eb'; c.lineWidth = 2; c.beginPath(); c.moveTo(px, 0); c.lineTo(px, h); c.stroke(); }
+        if (px >= 0 && px <= w) { c.strokeStyle = headColor; c.lineWidth = 2; c.beginPath(); c.moveTo(px, 0); c.lineTo(px, h); c.stroke(); }
       }
     }
 
