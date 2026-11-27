@@ -91,6 +91,23 @@ Measured with software encoding: a 35-minute video in about 77 s. Audio is AAC w
 Opus-in-MP4 otherwise. Browsers without WebCodecs fall back to real-time recording (as long as the video itself,
 and the Shorts tab always works that way).
 
+## Background videos loop forward and back
+
+A clip a few seconds long rarely ends where it began, so a plain loop shows a cut. Every background video here
+plays forward and then the same frames backward (0 s → 10 s → 0 s → 10 s …), so the picture at the restart is the one
+it just left. The two turning frames are not repeated, so nothing stutters, and the export uses the same clip, so the
+video you save loops the same way.
+
+A browser cannot play a video backward, so the reversed copy is made ahead of time:
+
+- **Built-in backgrounds** — `npm run bgs:pingpong` (needs `ffmpeg`) writes `v1.pp.mp4` next to `v1.mp4`; `-- --force`
+  rebuilds. The page plays the `.pp.mp4` and falls back to the original if it is missing. Run it after adding a video.
+- **Videos you add** — made in the browser the first time (`js/video-pingpong.js`, WebCodecs): the clip is played once,
+  every frame is encoded as its own keyframe so any frame can sit in any order, and the frames are written forward then
+  backward. About 10 s of work for a 10 s clip, then it is kept on the device, so the next visit is instant. The original
+  keeps looping meanwhile and the clip swaps in when it is ready; *Create video* waits for it. Clips over 30 s, and
+  browsers without WebCodecs, keep the plain loop.
+
 ## Design
 
 A video-editor surface (in the spirit of CapCut or VN): neutral near-black, so the video preview is the colour on
@@ -111,10 +128,11 @@ least 44 px, focus is always visible and motion respects *reduce motion* — `te
 | `js/video-maker-own.js`, `js/own-recitation.js` | your own recording: storage, decoding, the timing sheet; the pause-based split and the tap snapping (unit-tested) |
 | `js/video-maker-rec.js` | the in-app recorder (teleprompter, live sync) |
 | `js/audio-fx.js`, `js/fx-gate-worklet.js`, `js/video-maker-fx.js` | the audio effects and their panel |
+| `js/video-pingpong.js` | the forward-and-back clip for videos you add (cached in IndexedDB) |
 | `js/tv-templates.js` | the template registry (positions are percentages of the 16:9 frame) |
 | `js/vendor/mp4-muxer.js` | MP4 writer (MIT) |
 | `images/tv-maker/` | long-video pictures — see its [README](images/tv-maker/README.md) |
-| `images/video-maker/` | Shorts backgrounds; `npm run bgs` rebuilds `manifest.json` after adding files |
+| `images/video-maker/` | Shorts backgrounds; `npm run bgs` rebuilds `manifest.json` after adding files, `npm run bgs:pingpong` makes their forward-and-back clips |
 | `data/quran.json`, `data/quran-qpc.json` | Quran text (see below) |
 | `sw.js` | offline support |
 | `tools/` | the scripts that cut the ornament sheets into separate pieces (needs Python + Pillow) |
