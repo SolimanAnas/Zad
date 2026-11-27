@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <style>html{touch-action:manipulation}</style>  <!-- pinch-zoom on, double-tap zoom off -->
-<meta name="theme-color" content="#F8FAFC">
+<meta name="theme-color" content="#0E0E10">
 <title>صانع فيديو الآيات — زاد المسلم | Quran Ayah Video Maker</title>
 <meta name="i18n-title" content="vm_meta_title">
 <link rel="manifest" href="../manifest.json">
@@ -48,62 +48,65 @@
   font-display: block;
 }
 :root {
-  --bg-image: url('../images/Background-light.webp');
-  --bg-surface: rgba(255, 255, 255, 0.45);
-  --text-primary: #0F172A; --text-secondary: #475569;
-  --accent-main: #10B981; --accent-strong: #059669; --accent-muted: rgba(16, 185, 129, 0.15);
-  --glass: rgba(255, 255, 255, 0.62); --glass-border: rgba(255, 255, 255, 0.6);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-  --overlay: rgba(255, 255, 255, 0.2);
-  --field-bg: rgba(255, 255, 255, 0.75);
-  --bar-bg: rgba(255, 255, 255, 0.86);
-  --sheet-bg: rgba(248, 250, 252, 0.97);
-  --list-hover: rgba(0, 0, 0, 0.05); --modal-overlay: rgba(0, 0, 0, 0.3);
-  --gold: #9a7b1f; --gold-soft: rgba(154,123,31,.12);
-  --danger: #ef4444;
+  /* Two Arabic faces with clear roles: Cairo for titles, tabs and buttons,
+     Tajawal for everything you read (labels, lists, descriptions). */
+  --font-display: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  --font-text: 'Tajawal', system-ui, sans-serif;
+  /* Studio: a neutral, video-editor surface (CapCut / VN) so the preview is the colour
+     on screen; the gold from the app icon is the one accent. Light and sepia follow the
+     same rules. Dark is the default (js/video-maker.js), the header toggles it. */
+  --paper: #F4F4F5; --surface: #FFFFFF; --surface-2: #F0F0F2; --surface-3: #E6E6E9;
+  --text-primary: #18181B; --text-secondary: #5B5B63;
+  --accent-main: #855A04; --accent-strong: #6E4A03; --accent-muted: rgba(133,90,4,.10); --on-accent: #FFFFFF;
+  --cta: #F2B33D; --cta-ink: #1A1203;
+  --seg-on: #18181B; --seg-on-ink: #FFFFFF;
+  --gold: #7E5605; --gold-soft: rgba(242,179,61,.18);
+  --line: rgba(24,24,27,.08); --line-strong: rgba(24,24,27,.16);
+  --stage-bg: #0B0B0C; --warn: #9A4A0B; --meta: #F4F4F5;
+  --glass: var(--surface); --glass-border: var(--line); --glass-shadow: none;
+  --field-bg: var(--surface-2); --bar-bg: rgba(255,255,255,.96); --sheet-bg: #FFFFFF;
+  --list-hover: rgba(24,24,27,.045); --modal-overlay: rgba(0,0,0,.45);
+  --danger: #C62828;
 }
 [data-theme="dark"] {
-  --bg-image: url('../images/Background-dark.webp');
-  --bg-surface: rgba(15, 23, 42, 0.5);
-  --text-primary: #F8FAFC; --text-secondary: #CBD5E1;
-  --accent-main: #10B981; --accent-strong: #34d399; --accent-muted: rgba(16, 185, 129, 0.16);
-  --glass: rgba(30, 41, 59, 0.62); --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-  --overlay: rgba(15, 23, 42, 0.5);
-  --field-bg: rgba(15, 23, 42, 0.55);
-  --bar-bg: rgba(22, 32, 50, 0.9);
-  --sheet-bg: rgba(17, 24, 39, 0.98);
-  --list-hover: rgba(255, 255, 255, 0.05); --modal-overlay: rgba(0, 0, 0, 0.7);
-  --gold: #e6c068; --gold-soft: rgba(230,192,104,.15);
-  --danger: #f87171;
+  --paper: #0E0E10; --surface: #18181B; --surface-2: #222226; --surface-3: #2C2C31;
+  --text-primary: #F4F4F5; --text-secondary: #A1A1AA;
+  --accent-main: #F2B33D; --accent-strong: #F7C562; --accent-muted: rgba(242,179,61,.13); --on-accent: #1A1203;
+  --cta: #F2B33D; --cta-ink: #1A1203;
+  --seg-on: #F4F4F5; --seg-on-ink: #0E0E10;
+  --gold: #F2B33D; --gold-soft: rgba(242,179,61,.13);
+  --line: rgba(255,255,255,.07); --line-strong: rgba(255,255,255,.15);
+  --stage-bg: #000000; --warn: #F5B062; --meta: #0E0E10;
+  --bar-bg: rgba(14,14,16,.96); --sheet-bg: #18181B;
+  --list-hover: rgba(255,255,255,.05); --modal-overlay: rgba(0,0,0,.6);
+  --danger: #F87171;
 }
 [data-theme="sepia"] {
-  --bg-image: url('../images/background-sepia.webp');
-  --bg-surface: rgba(244, 236, 216, 0.55);
-  --text-primary: #3c2a18; --text-secondary: #7a6244;
-  --accent-main: #8a5a1c; --accent-strong: #6f4714; --accent-muted: rgba(138, 90, 28, 0.12);
-  --glass: rgba(252, 247, 234, 0.66); --glass-border: rgba(244, 236, 216, 0.7);
-  --glass-shadow: 0 8px 32px 0 rgba(90, 60, 20, 0.1);
-  --overlay: rgba(244, 236, 216, 0.2);
-  --field-bg: rgba(252, 247, 234, 0.85);
-  --bar-bg: rgba(250, 244, 228, 0.92);
-  --sheet-bg: rgba(250, 244, 228, 0.98);
-  --list-hover: rgba(122, 84, 24, 0.06); --modal-overlay: rgba(0, 0, 0, 0.3);
-  --gold: #9a6b1f; --gold-soft: rgba(154,107,31,.12);
-  --danger: #c0392b;
+  --paper: #EFE9DF; --surface: #FAF7F1; --surface-2: #F1EBE1; --surface-3: #E7DFD2;
+  --text-primary: #2B2418; --text-secondary: #665A47;
+  --accent-main: #8A5A00; --accent-strong: #6E4700; --accent-muted: rgba(138,90,0,.10); --on-accent: #FFFFFF;
+  --cta: #E9A93A; --cta-ink: #1F1606;
+  --seg-on: #2B2418; --seg-on-ink: #FAF7F1;
+  --gold: #6E4700; --gold-soft: rgba(233,169,58,.16);
+  --line: rgba(43,36,24,.09); --line-strong: rgba(43,36,24,.18);
+  --stage-bg: #0B0B0C; --warn: #8A3F08; --meta: #EFE9DF;
+  --bar-bg: rgba(250,247,241,.96); --sheet-bg: #FAF7F1;
+  --list-hover: rgba(43,36,24,.045); --modal-overlay: rgba(30,20,8,.4);
+  --danger: #B3261E;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 body {
-  margin: 0; font-family: 'Tajawal', sans-serif;
-  background-color: var(--bg-surface); background-image: var(--bg-image);
-  background-size: cover; background-position: center; background-attachment: fixed;
+  margin: 0; font-family: var(--font-text); line-height:1.55;
+  background-color: var(--paper);
   color: var(--text-primary); display: flex; justify-content: center;
   padding: calc(max(12px, env(safe-area-inset-top)) + 14px) 16px calc(env(safe-area-inset-bottom) + 104px);
   min-height: 100dvh;
 }
-body::before { content:''; position:fixed; inset:0; background:var(--overlay); z-index:-1; }
+/* One visible focus style for everything you can reach with the keyboard. */
+:focus-visible { outline:3px solid var(--accent-main); outline-offset:2px; }
+input:focus-visible, select:focus-visible { outline:none; }
 button { font-family: inherit; }
 
 .app { width:100%; max-width:1040px; display:flex; flex-direction:column; gap:14px; }
@@ -112,19 +115,19 @@ button { font-family: inherit; }
   .layout { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); }
   .preview-col { position:sticky; top:16px; }
 }
-.controls-col { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.controls-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
 
 /* Header */
-.header {
-  position:relative; display:flex; align-items:center; justify-content:space-between;
-  background:var(--glass); border:1px solid var(--glass-border);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-  box-shadow:var(--glass-shadow); border-radius:18px; padding:12px 16px;
-}
-.header-title { font-weight:800; font-size:18px; position:absolute; left:50%; transform:translateX(-50%); white-space:nowrap; }
+.header { position:relative; display:flex; align-items:center; gap:10px; padding:0; }
+.brand-mark { width:36px; height:36px; border-radius:10px; flex:none; }
+.header-title { font-weight:700; font-size:19px; line-height:1.3; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.header .icon-btn { color:var(--text-secondary); }
+.theme-btn .ic-sun { display:none; }
+[data-theme="dark"] .theme-btn .ic-sun { display:block; }
+[data-theme="dark"] .theme-btn .ic-moon { display:none; }
 .icon-btn {
   background:none; border:none; color:var(--text-primary); cursor:pointer;
-  width:36px; height:36px; border-radius:10px;
+  width:44px; height:44px; border-radius:12px;
   display:flex; align-items:center; justify-content:center; transition:background .2s, transform .15s;
   font-size:18px;
 }
@@ -132,19 +135,19 @@ button { font-family: inherit; }
 .icon-btn:active { transform:scale(.92); }
 
 .card {
-  background:var(--glass); border:1px solid var(--glass-border);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-  box-shadow:var(--glass-shadow); border-radius:22px; padding:16px;
+  background:var(--surface); border:none; border-radius:16px; padding:16px;
   display:flex; flex-direction:column; gap:12px; min-width:0;
 }
 
-/* Section headers: numbered steps guide the flow top to bottom */
+/* The preview has no frame of its own: the video is the hero. */
+.preview-col > .card { background:transparent; padding:0; gap:10px; }
+
+/* Section headers: a line icon and the title */
 .step-head { display:flex; align-items:center; gap:10px; }
-/* "✦ Popular" quick pick — a filled pill at the end of the step row. Solid accent
-   fill + glow so it reads as a call to action against the glass card, in every theme. */
+/* Search and "✦ Popular" quick picks sit quietly at the end of the step row. */
 .search-btn {
-  margin-inline-start:auto; flex-shrink:0; width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center;
-  border-radius:50%; cursor:pointer; border:1px solid var(--glass-border, rgba(128,128,128,.3)); background:rgba(128,128,128,.12); color:inherit; padding:0;
+  margin-inline-start:auto; flex-shrink:0; width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%; cursor:pointer; border:none; background:var(--surface-2); color:var(--text-secondary); padding:0;
 }
 .search-btn:active { transform:scale(.92); }
 .search-btn:focus-visible { outline:2px solid var(--accent-main); outline-offset:3px; }
@@ -152,53 +155,48 @@ button { font-family: inherit; }
 .search-hl { background:rgba(255,213,79,.6); color:#000; border-radius:4px; padding:0 2px; }
 .popular-btn {
   margin-inline-start:auto; flex-shrink:0; display:inline-flex; align-items:center; gap:6px;
-  padding:6px 14px; border-radius:999px; cursor:pointer; white-space:nowrap;
-  border:none; color:#fff;
-  background:linear-gradient(135deg, var(--accent-main), var(--accent-strong));
-  box-shadow:0 4px 14px rgba(16,185,129,.4), inset 0 1px 0 rgba(255,255,255,.25);
+  min-height:44px; padding:6px 14px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  border:none; color:var(--text-primary); background:var(--gold-soft);
   font-family:inherit; font-size:13.5px; font-weight:800; line-height:1.35;
-  transition:transform .15s, box-shadow .2s, filter .2s;
+  transition:transform .15s, background .2s;
 }
-[data-theme="sepia"] .popular-btn { box-shadow:0 4px 14px rgba(138,90,28,.35), inset 0 1px 0 rgba(255,255,255,.25); }
-.popular-btn:hover { filter:brightness(1.08); box-shadow:0 6px 18px rgba(16,185,129,.5), inset 0 1px 0 rgba(255,255,255,.25); }
+.popular-btn:hover { background:var(--surface-3); }
 .popular-btn:active { transform:scale(.95); }
 .popular-btn:focus-visible { outline:2px solid var(--accent-main); outline-offset:3px; }
 .popular-btn:disabled { opacity:.5; box-shadow:none; }
-.popular-btn .spark { width:14px; height:14px; color:#fde68a; display:inline-block; animation:sparkle 2.4s ease-in-out infinite; }
+.popular-btn .spark { width:14px; height:14px; color:var(--gold); display:inline-block; }
 @keyframes sparkle {
   0%, 70%, 100% { transform:scale(1) rotate(0); opacity:1; }
   80% { transform:scale(1.35) rotate(45deg); opacity:.85; }
   90% { transform:scale(.9) rotate(90deg); opacity:1; }
 }
 @media (prefers-reduced-motion:reduce) { .popular-btn .spark { animation:none; } }
-.step-num {
-  width:26px; height:26px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  background:var(--accent-main); color:#fff; font-size:13px; font-weight:800;
-}
-.step-title { font-size:16px; font-weight:800; }
-.label { font-size:13px; color:var(--text-secondary); font-weight:700; }
+.step-icon { width:22px; height:22px; flex-shrink:0; color:var(--accent-main); }
+.step-icon svg { width:100%; height:100%; display:block; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.step-title { font-size:16px; font-weight:700; }
+.label { font-size:13.5px; color:var(--text-secondary); font-weight:500; }
 .field { display:flex; flex-direction:column; gap:6px; min-width:0; }
 .row { display:flex; gap:10px; }
 .row > * { flex:1; min-width:0; }
 
 select, input[type="number"] {
   width:100%; font-family:inherit; font-size:15px; color:var(--text-primary);
-  background:var(--field-bg); border:1px solid var(--glass-border); border-radius:14px;
-  padding:11px 12px; outline:none; transition:border-color .2s, box-shadow .2s;
+  background:var(--field-bg); border:1px solid transparent; border-radius:12px;
+  min-height:48px; padding:11px 12px; outline:none; transition:border-color .2s, box-shadow .2s;
 }
 select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-shadow:0 0 0 3px var(--accent-muted); }
 
 /* Surah / reciter picker buttons (open the glass sheets below, like takrar.html) */
 .picker-btn {
-  width:100%; display:flex; align-items:center; gap:10px; min-height:50px; cursor:pointer;
-  padding:10px 14px; border-radius:14px; border:1px solid var(--accent-main);
-  background:var(--field-bg); color:var(--text-primary); font-size:15px; font-weight:700; text-align:start;
+  width:100%; display:flex; align-items:center; gap:10px; min-height:52px; cursor:pointer;
+  padding:10px 14px; border-radius:12px; border:1px solid transparent;
+  background:var(--field-bg); color:var(--text-primary); font-size:15px; font-weight:600; text-align:start;
   transition:box-shadow .2s, transform .12s;
 }
 .picker-btn:active { transform:scale(.99); }
-.picker-btn:focus-visible { box-shadow:0 0 0 3px var(--accent-muted); outline:none; }
-.picker-btn::after { content:'\25BC'; font-size:11px; opacity:.55; margin-inline-start:auto; flex-shrink:0; }
+.picker-btn:hover { background:var(--surface-3); }
+.picker-btn:focus-visible { box-shadow:0 0 0 3px var(--accent-muted); border-color:var(--accent-main); outline:none; }
+.picker-btn::after { content:''; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:translateY(-3px) rotate(45deg); opacity:.55; margin-inline-start:auto; flex-shrink:0; }
 .picker-btn:disabled { opacity:.5; }
 .picker-main { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .picker-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -220,24 +218,23 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 
 .pick-overlay {
   position:fixed; inset:0; background:var(--modal-overlay);
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
-  z-index:9998; opacity:0; pointer-events:none; transition:opacity .3s;
+  z-index:9998; opacity:0; pointer-events:none; transition:opacity .25s;
 }
 .pick-overlay.active { opacity:1; pointer-events:all; }
 .bottom-sheet {
   position:fixed; bottom:var(--kb, 0px); left:50%; width:100%; max-width:480px;
   max-height:min(85vh, calc(var(--vvh, 100dvh) - 24px));
-  background:var(--glass); backdrop-filter:blur(35px); -webkit-backdrop-filter:blur(35px);
-  border-top:1px solid var(--glass-border); border-radius:30px 30px 0 0;
-  transform:translate(-50%,100%); transition:transform .4s cubic-bezier(.2,.9,.4,1.1);
+  background:var(--sheet-bg);
+  border-top:none; border-radius:24px 24px 0 0;
+  transform:translate(-50%,100%); transition:transform .32s cubic-bezier(.2,.9,.3,1);
   z-index:10000; display:flex; flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom, 20px); box-shadow:0 -10px 40px rgba(0,0,0,.2);
 }
 .bottom-sheet.active { transform:translate(-50%,0); }
 .bottom-sheet.searching { height:calc(var(--vvh, 100dvh) - 24px); }
 .drag-handle { width:40px; height:5px; background:rgba(150,150,150,.4); border-radius:10px; margin:12px auto; flex-shrink:0; }
-.sheet-header { display:flex; justify-content:space-between; align-items:center; padding:6px 20px 14px; border-bottom:1px solid var(--glass-border); flex-shrink:0; }
-.sheet-header h2 { font-size:1.3rem; margin:0; font-weight:800; }
+.sheet-header { display:flex; justify-content:space-between; align-items:center; padding:4px 20px 12px; flex-shrink:0; }
+.sheet-header h2 { font-size:1.2rem; margin:0; font-weight:700; }
 .sheet-content { padding:15px 20px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; flex:1; }
 .sheet-search {
   width:100%; padding:14px; border-radius:14px; border:1px solid var(--glass-border);
@@ -248,14 +245,14 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 .sheet-list { display:flex; flex-direction:column; gap:8px; }
 .sheet-item {
   display:flex; align-items:center; gap:10px; width:100%;
-  padding:14px 15px; border-radius:16px; background:var(--list-hover);
-  border:1px solid var(--glass-border); color:var(--text-primary); font-size:16px; font-family:inherit;
-  font-weight:700; cursor:pointer; transition:transform .15s, background .2s; text-align:start;
+  padding:13px 15px; border-radius:12px; background:var(--surface-2);
+  border:1px solid transparent; color:var(--text-primary); font-size:16px; font-family:inherit;
+  font-weight:600; cursor:pointer; transition:transform .15s, background .2s; text-align:start;
 }
 .sheet-item:active { transform:scale(.98); }
-.sheet-item.selected { background:var(--accent-main); color:#fff; border-color:var(--accent-main); box-shadow:0 4px 15px rgba(16,185,129,.3); }
-.sheet-item.selected .item-num { color:#fff; }
-.sheet-item.selected .rc-style { background:rgba(255,255,255,.2); color:#fff; }
+.sheet-item.selected { background:var(--accent-main); color:var(--on-accent); border-color:var(--accent-main); }
+.sheet-item.selected .item-num { color:var(--on-accent); }
+.sheet-item.selected .rc-style { background:rgba(255,255,255,.2); color:var(--on-accent); }
 /* Reciter name with its style badge underneath — in the picker button and the sheet rows. */
 .rc-text { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .rc-name { font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -269,20 +266,20 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
   font-family:'QuranFont', serif; font-size:16px; font-weight:400; line-height:1.75; color:var(--text-secondary);
   direction:rtl; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.sheet-item.selected .pop-meta, .sheet-item.selected .pop-text { color:rgba(255,255,255,.9); }
+.sheet-item.selected .pop-meta, .sheet-item.selected .pop-text { color:var(--on-accent); opacity:.9; }
 .reciter-filter { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding-bottom:2px; flex-shrink:0; }
 .reciter-filter::-webkit-scrollbar { display:none; }
 .filter-chip {
-  padding:7px 14px; border-radius:20px; font-size:12.5px; font-weight:700; font-family:inherit; white-space:nowrap;
-  background:var(--list-hover); border:1px solid var(--glass-border); color:var(--text-secondary); cursor:pointer; transition:.2s;
+  min-height:40px; padding:7px 14px; border-radius:20px; font-size:13px; font-weight:600; font-family:inherit; white-space:nowrap;
+  background:var(--surface-2); border:1px solid transparent; color:var(--text-secondary); cursor:pointer; transition:.2s;
 }
-.filter-chip.active { background:var(--accent-main); color:#fff; border-color:var(--accent-main); }
+.filter-chip.active { background:var(--accent-main); color:var(--on-accent); border-color:var(--accent-main); }
 @media (prefers-reduced-motion:reduce) { .bottom-sheet, .pick-overlay { transition:none; } }
 
 /* Ayah number stepper: big tap targets for − / + */
 .stepper {
   display:flex; align-items:stretch; background:var(--field-bg);
-  border:1px solid var(--glass-border); border-radius:14px; overflow:hidden;
+  border:none; border-radius:12px; overflow:hidden;
 }
 .stepper input {
   border:none; background:none; border-radius:0; text-align:center; font-weight:800; font-size:17px;
@@ -290,7 +287,7 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 }
 .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
 .stepper button {
-  flex:0 0 42px; border:none; background:none; color:var(--accent-main);
+  flex:0 0 46px; min-height:48px; border:none; background:none; color:var(--accent-main);
   font-size:22px; font-weight:700; cursor:pointer; transition:background .15s;
 }
 .stepper button:active { background:var(--accent-muted); }
@@ -298,11 +295,11 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 /* Switch rows (title + description + toggle) */
 .switch-row {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:10px 12px; border-radius:14px; background:var(--accent-muted); cursor:pointer;
+  min-height:52px; padding:10px 12px; border-radius:12px; background:var(--surface-2); cursor:pointer;
 }
 .switch-row .sw-text { display:flex; flex-direction:column; gap:2px; min-width:0; }
-.switch-row .sw-title { font-size:14px; font-weight:700; }
-.switch-row .sw-desc { font-size:12px; color:var(--text-secondary); }
+.switch-row .sw-title { font-size:14px; font-weight:600; }
+.switch-row .sw-desc { font-size:12.5px; color:var(--text-secondary); }
 .switch {
   -webkit-appearance:none; appearance:none; margin:0; flex-shrink:0; cursor:pointer;
   position:relative; width:48px; height:28px; border-radius:28px;
@@ -313,6 +310,7 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
   border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:transform .25s;
 }
 .switch:checked { background:var(--accent-main); }
+.switch:checked::after { background:#FFFFFF; }
 .switch:checked::after { transform:translateX(-20px); }
 [dir="ltr"] .switch:checked::after { transform:translateX(20px); }
 .switch:focus-visible { outline:2px solid var(--accent-main); outline-offset:2px; }
@@ -320,8 +318,8 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 /* Preview stage */
 .stage {
   position:relative; display:flex; align-items:center; justify-content:center;
-  height:min(60vh, 620px); border-radius:18px; overflow:hidden;
-  background:radial-gradient(ellipse at center, rgba(0,0,0,.18), rgba(0,0,0,.32));
+  height:min(46vh, 490px); border-radius:16px; overflow:hidden;
+  background:var(--stage-bg);
   cursor:pointer; user-select:none;
 }
 .stage canvas {
@@ -370,12 +368,13 @@ body.vm-pseudo-fs .action-bar { display:none; }
 .stage-badge.rec::before { content:''; width:8px; height:8px; border-radius:50%; background:#ef4444; animation:blink 1s infinite; }
 @keyframes blink { 50% { opacity:.2; } }
 .stage-progress { position:absolute; left:0; right:0; bottom:0; height:4px; background:rgba(255,255,255,.15); }
-.stage-progress > div { height:100%; width:0; background:var(--accent-main); transition:width .15s linear; }
+.stage-progress > div { height:100%; width:0; background:var(--cta); transition:width .15s linear; }
+@media (min-width: 880px) { .stage { height:min(64vh, 640px); } }
 
 .meta-row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
 .chip {
-  font-size:12.5px; font-weight:700; padding:5px 12px; border-radius:20px;
-  background:var(--accent-muted); color:var(--text-primary);
+  font-size:13px; font-weight:500; padding:5px 12px; border-radius:20px;
+  background:var(--surface); color:var(--text-secondary); font-variant-numeric:tabular-nums;
 }
 .status { font-size:13px; color:var(--text-secondary); min-height:1.2em; text-align:center; }
 .status.error { color:var(--danger); font-weight:700; }
@@ -393,7 +392,7 @@ body.vm-pseudo-fs .action-bar { display:none; }
 .bg-thumb.active { border-color:var(--accent-main); box-shadow:0 0 0 3px var(--accent-muted); }
 .bg-thumb.active::before {
   content:attr(data-order); position:absolute; top:4px; inset-inline-start:4px; width:18px; height:18px; border-radius:50%;
-  background:var(--accent-main); color:#fff; font-size:11px; font-weight:800; line-height:18px; text-align:center;
+  background:var(--accent-main); color:var(--on-accent); font-size:11px; font-weight:800; line-height:18px; text-align:center;
 }
 .bg-thumb.active:not([data-order])::before { content:'✓'; }
 /* Multi-picture mode: only pictures can be picked. */
@@ -419,8 +418,8 @@ body.vm-pseudo-fs .action-bar { display:none; }
 .formats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
 .formats button {
   display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
-  padding:10px 4px; border-radius:14px; border:1.5px solid var(--glass-border);
-  background:var(--field-bg); color:var(--text-secondary); font-size:12.5px; font-weight:700;
+  min-height:48px; padding:10px 4px; border-radius:12px; border:1.5px solid transparent;
+  background:var(--field-bg); color:var(--text-secondary); font-size:13px; font-weight:600;
   transition:border-color .2s, color .2s, background .2s;
 }
 .formats button.active { border-color:var(--accent-main); color:var(--accent-main); background:var(--accent-muted); }
@@ -437,29 +436,143 @@ body.vm-pseudo-fs .action-bar { display:none; }
 body.mode-long .only-short, body:not(.mode-long) .only-long { display:none !important; }
 body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .mode-tabs {
-  display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:16px;
-  background:var(--glass); border:1px solid var(--glass-border); box-shadow:var(--glass-shadow);
-  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:14px;
+  background:var(--surface);
 }
 .mode-tabs button {
-  display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:8px 10px;
-  border:none; border-radius:12px; background:transparent; color:var(--text-secondary);
-  font:inherit; font-size:14px; font-weight:800; cursor:pointer; transition:background .2s, color .2s;
+  display:flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:8px 6px; min-width:0;
+  border:none; border-radius:10px; background:transparent; color:var(--text-secondary);
+  font:inherit; font-size:clamp(13px, 3.6vw, 15px); font-weight:600; cursor:pointer; transition:background .2s, color .2s;
+  white-space:nowrap;
 }
+.mode-tabs button span { overflow:hidden; text-overflow:ellipsis; }
 .mode-tabs button svg { width:18px; height:18px; flex-shrink:0; }
-.mode-tabs button.active { background:var(--accent-main); color:#fff; box-shadow:0 6px 16px rgba(0,0,0,.18); }
+.mode-tabs button.active { background:var(--seg-on); color:var(--seg-on-ink); }
 .mode-tabs button:disabled { cursor:default; opacity:.6; }
 .long-hint { display:flex; gap:8px; align-items:flex-start; font-size:12px; color:var(--text-secondary); line-height:1.6; margin-top:2px; }
 .long-hint svg { width:16px; height:16px; flex-shrink:0; margin-top:2px; }
+/* The user's own recording («تسجيلي») */
+.text-input {
+  width:100%; font-family:inherit; font-size:15px; color:var(--text-primary);
+  background:var(--field-bg); border:1px solid transparent; border-radius:12px;
+  min-height:48px; padding:11px 12px; outline:none; transition:border-color .2s, box-shadow .2s;
+}
+.text-input:focus { border-color:var(--accent-main); box-shadow:0 0 0 3px var(--accent-muted); }
+.own-pick {
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px; min-height:50px; cursor:pointer;
+  padding:10px 14px; border-radius:12px; border:1.5px dashed var(--line-strong);
+  background:var(--surface-2); color:var(--text-primary); font:inherit; font-size:15px; font-weight:600;
+}
+.own-pick svg { width:20px; height:20px; flex:none; }
+.own-pick:active { transform:scale(.99); }
+.own-info { display:flex; align-items:center; gap:10px; margin-top:8px; padding:10px 12px; border-radius:12px; background:var(--field-bg); }
+.own-file { display:flex; flex-direction:column; min-width:0; flex:1; gap:2px; }
+.own-file b { font-size:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; unicode-bidi:isolate; text-align:start; }
+.own-file small { font-size:12px; color:var(--text-secondary); }
+.own-del { position:relative; width:36px; height:36px; border-radius:50%; border:none; background:var(--list-hover); color:var(--text-secondary); font-size:19px; line-height:1; cursor:pointer; flex:none; }
+.own-del::after { content:''; position:absolute; inset:-5px; }
+.own-sync-btn { flex:none; width:100%; margin-top:8px; padding:11px 10px; font-size:14.5px; }
+.own-status { font-size:12.5px; font-weight:700; margin:8px 2px 0; min-height:1em; }
+.own-status.ok { color:var(--accent-main); }
+.own-status.warn { color:var(--warn); }
+.own-private { font-size:11.5px; color:var(--text-secondary); margin:4px 2px 2px; }
+#vmOwnBox, #vmReciterBox { margin-top:2px; }
+/* Record / upload buttons side by side */
+.own-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.own-actions .own-pick { font-size:14px; padding:10px 8px; }
+#vmOwnRec { border-style:solid; background:#E5484D; border-color:#E5484D; color:#fff; }
+/* Audio effects panel */
+.fx-box { margin-top:10px; border-radius:14px; background:var(--field-bg); padding:12px; display:flex; flex-direction:column; gap:8px; }
+.fx-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.fx-title { display:flex; align-items:center; gap:8px; font-weight:800; font-size:14.5px; }
+.fx-title svg { width:18px; height:18px; color:var(--accent-main); }
+.fx-body { display:flex; flex-direction:column; gap:10px; transition:opacity .2s; }
+.fx-body.off { opacity:.45; }
+.fx-group { display:flex; flex-direction:column; gap:6px; padding-top:10px; border-top:1px solid var(--line); }
+.fx-sub { display:flex; align-items:center; justify-content:space-between; font-weight:800; font-size:13.5px; color:var(--text-primary); }
+.fx-rows { display:flex; flex-direction:column; gap:4px; transition:opacity .2s; }
+.fx-rows.off { opacity:.45; pointer-events:none; }
+.fx-row { display:grid; grid-template-columns:minmax(84px, 34%) 1fr 64px; align-items:center; gap:8px; font-size:13px; color:var(--text-secondary); font-weight:700; }
+.fx-row output { font-size:12px; text-align:end; font-variant-numeric:tabular-nums; color:var(--text-primary); }
+.fx-row.fx-check { grid-template-columns:1fr auto; }
+.fx-rooms { display:flex; gap:6px; flex-wrap:wrap; }
+.fx-rooms button { min-height:40px; border:1px solid transparent; background:var(--surface-3); color:var(--text-secondary); border-radius:12px; padding:7px 12px; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+.fx-rooms button.active { background:var(--accent-main); border-color:var(--accent-main); color:var(--on-accent); }
+.fx-listen { flex:none; width:100%; padding:11px 10px; font-size:14.5px; }
+/* Recorder sheet */
+.rec-sheet { max-width:620px; height:calc(var(--vvh, 100dvh) - 24px); max-height:none; }
+.rec-sheet .sheet-content { gap:12px; }
+.rec-top { display:flex; align-items:center; justify-content:space-between; font-weight:800; }
+.rec-count { color:var(--accent-main); font-size:15px; }
+.rec-time { font-variant-numeric:tabular-nums; font-size:15px; color:var(--text-secondary); }
+.rec-dots { display:flex; gap:4px; flex-wrap:wrap; }
+.rec-dots i { flex:1 1 6px; max-width:24px; height:5px; border-radius:3px; background:var(--glass-border); }
+.rec-dots i.done { background:var(--accent-main); }
+.rec-dots i.cur { background:#dc2626; }
+.rec-prompt { position:relative; flex:1; min-height:200px; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:18px 16px; border-radius:20px;
+  background:var(--field-bg); border:1.5px solid var(--glass-border); cursor:default; overflow-y:auto; user-select:none; transition:border-color .2s; }
+.rec-prompt.live { cursor:pointer; border-color:#dc2626; }
+.rec-prompt.flash { animation:recFlash .35s ease; }
+@keyframes recFlash { from { background:var(--accent-muted); } }
+.rec-ayah { font-size:clamp(30px, 8.4vw, 50px); line-height:2; text-align:center; color:var(--text-primary); }
+.rec-next { font-size:clamp(18px, 4.6vw, 26px); line-height:1.9; text-align:center; color:var(--text-secondary); opacity:.6; border-top:1px dashed var(--glass-border); padding-top:10px; }
+.rec-countdown { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:96px; font-weight:900; color:#dc2626; background:color-mix(in srgb, var(--field-bg) 82%, transparent); border-radius:20px; }
+.rec-meter { height:8px; border-radius:6px; background:var(--glass-border); overflow:hidden; flex-shrink:0; }
+.rec-meter span { display:block; height:100%; width:0; background:var(--accent-main); transition:width .06s linear; }
+.rec-meter span.hot { background:#dc2626; }
+.rec-status { min-height:1.2em; font-size:13px; font-weight:700; color:var(--text-secondary); text-align:center; }
+.rec-status.warn { color:var(--warn); }
+.rec-controls { display:grid; grid-template-columns:1fr 1.7fr 1fr; gap:8px; align-items:stretch; }
+.rec-side, .rec-main { display:flex; align-items:center; justify-content:center; gap:8px; min-height:58px; padding:0 8px; border-radius:18px; font:inherit; font-size:clamp(14px, 3.9vw, 16px); font-weight:800; white-space:nowrap; cursor:pointer; border:1px solid var(--glass-border); background:var(--field-bg); color:var(--text-primary); }
+.rec-side svg { width:20px; height:20px; }
+.rec-side:disabled, .rec-main:disabled { opacity:.4; cursor:default; }
+.rec-next-btn:not(:disabled) { background:var(--accent-main); border-color:var(--accent-main); color:var(--on-accent); }
+.rec-main { background:#dc2626; border-color:#dc2626; color:#fff; }
+.rec-main .rec-dot { width:14px; height:14px; border-radius:50%; background:#fff; }
+.rec-main.on .rec-dot { border-radius:3px; animation:recPulse 1s ease-in-out infinite; }
+@keyframes recPulse { 50% { opacity:.35; } }
+.rec-hint { font-size:12.5px; color:var(--text-secondary); text-align:center; line-height:1.6; }
+.rec-cancel { align-self:center; border:none; background:none; color:var(--danger, #dc2626); font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; text-decoration:underline; }
+@media (prefers-reduced-motion:reduce) { .rec-main.on .rec-dot, .rec-prompt.flash { animation:none; } }
+/* Sync sheet */
+.sync-sheet { max-width:560px; }
+.sync-hint { font-size:12.5px; color:var(--text-secondary); line-height:1.6; }
+.sync-status { font-size:13px; font-weight:800; color:var(--accent-main); }
+.sync-status.warn { color:var(--warn); }
+.sync-wave { width:100%; height:120px; border-radius:14px; background:var(--field-bg); border:1px solid var(--glass-border); touch-action:none; cursor:pointer; flex-shrink:0; }
+.sync-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.sync-play { width:48px; height:48px; border-radius:50%; border:none; background:var(--accent-main); color:var(--on-accent); font-size:16px; cursor:pointer; flex:none; }
+.sync-time { font-size:13px; font-weight:700; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.sync-zoom { display:flex; gap:4px; margin-inline-start:auto; }
+.sync-zoom button { min-height:40px; min-width:40px; border:1px solid var(--line); background:var(--field-bg); color:var(--text-secondary); border-radius:10px; padding:6px 9px; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+.sync-zoom button.active { background:var(--accent-main); border-color:var(--accent-main); color:var(--on-accent); }
+.sync-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.sync-list { gap:6px; }
+.sync-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:14px; background:var(--list-hover); border:1.5px solid transparent; flex-wrap:wrap; }
+.sync-row.sel { border-color:#f59e0b; background:var(--accent-muted); }
+.sync-row.end .sr-text { color:#e11d48; }
+.sr-num { min-width:2.2em; text-align:center; font-weight:800; color:var(--accent-main); font-size:15px; }
+.sr-text { flex:1; min-width:6em; font-size:15px; font-family:'QuranFont','QuranFallback',serif; line-height:1.9; }
+.sr-ctl { display:flex; align-items:center; gap:4px; margin-inline-start:auto; direction:ltr; }
+.sr-ctl button { width:42px; height:42px; border-radius:10px; border:1px solid var(--glass-border); background:var(--field-bg); color:var(--text-primary); font-size:15px; font-weight:800; cursor:pointer; padding:0; }
+.sr-ctl input[type="number"] { width:64px; min-height:42px; padding:7px 4px; text-align:center; font-size:14px; border-radius:10px; }
+.sync-done { flex:none; width:100%; margin-top:4px; }
+/* Cairo where the page speaks in headings and actions. */
+.header-title, .step-title, .mode-tabs button, .btn, .sheet-header h2, .sheet-title,
+.popular-btn, .rec-main, .rec-side, .rec-count, .fx-title, .own-pick { font-family:var(--font-display); }
+.header-title { font-weight:700; letter-spacing:0; }
+.step-title { font-weight:700; }
+.btn { font-weight:700; }
+.mode-tabs button { font-weight:600; }
 .tpl-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; max-height:520px; overflow-y:auto; padding:2px; }
 @media (min-width: 880px) { .tpl-grid { grid-template-columns:repeat(3, 1fr); } }
 .tpl-thumb {
-  display:flex; flex-direction:column; gap:6px; padding:6px; border-radius:14px; cursor:pointer;
-  border:1.5px solid var(--glass-border); background:var(--field-bg); color:var(--text-secondary);
+  display:flex; flex-direction:column; gap:6px; padding:6px; border-radius:12px; cursor:pointer;
+  border:1.5px solid transparent; background:var(--field-bg); color:var(--text-secondary);
   font:inherit; font-size:12.5px; font-weight:700; transition:border-color .2s, color .2s;
 }
 .tpl-thumb canvas { width:100%; aspect-ratio:16 / 9; height:auto; border-radius:9px; display:block; background:#000; }
-.tpl-thumb.active { border-color:var(--accent-main); color:var(--accent-main); background:var(--accent-muted); }
+.tpl-thumb.active { border-color:var(--accent-main); color:var(--text-primary); background:var(--accent-muted); }
 
 /* Font size slider with small/large glyph hints */
 .range-row { display:flex; align-items:center; gap:10px; }
@@ -467,38 +580,41 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .range-row .a-lg { font-size:20px; font-weight:800; color:var(--text-secondary); }
 input[type="range"] { width:100%; accent-color:var(--accent-main); }
 
-.color-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.color-row { display:flex; gap:10px; align-items:center; flex-wrap:nowrap; overflow-x:auto; padding:5px 4px 6px; scrollbar-width:none; }
+.color-row::-webkit-scrollbar { display:none; }
 .swatch {
-  width:32px; height:32px; border-radius:50%; border:2px solid rgba(0,0,0,.12); cursor:pointer; padding:0;
+  position:relative; flex:none; width:34px; height:34px; border-radius:50%; border:2px solid var(--line-strong); cursor:pointer; padding:0;
   transition:transform .15s;
 }
+.swatch::before { content:''; position:absolute; inset:-5px; }
 .swatch:active { transform:scale(.9); }
 .swatch.active { outline:2.5px solid var(--accent-main); outline-offset:2px; }
-.custom-color { position:relative; width:32px; height:32px; border-radius:50%; overflow:hidden;
-  background:conic-gradient(red, yellow, lime, cyan, blue, magenta, red); border:2px solid rgba(0,0,0,.12); }
+.custom-color { position:relative; flex:none; width:34px; height:34px; border-radius:50%; overflow:hidden;
+  background:conic-gradient(red, yellow, lime, cyan, blue, magenta, red); border:2px solid var(--line-strong); }
 .custom-color input { position:absolute; inset:-8px; width:48px; height:48px; opacity:0; cursor:pointer; }
 /* "Automatic" glow/shadow colour: half dark, half light. */
 .swatch.auto { background:linear-gradient(135deg, #111 0 50%, #fff 50% 100%); position:relative; }
-.swatch.auto::after { content:'A'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+.swatch.auto::after { content:'A'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;
   font:800 12px/1 system-ui, sans-serif; color:#888; }
 
 /* Fixed action bar */
 .action-bar {
   position:fixed; left:0; right:0; bottom:0; z-index:20; display:flex; justify-content:center;
   padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);
-  background:var(--bar-bg); border-top:1px solid var(--glass-border);
-  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  background:var(--bar-bg); border-top:1px solid var(--line);
 }
 .action-inner { width:100%; max-width:1040px; display:flex; gap:10px; }
 .btn {
-  flex:1; font-size:16px; font-weight:800; cursor:pointer;
-  border-radius:16px; padding:14px 10px; border:1px solid var(--glass-border);
-  background:var(--field-bg); color:var(--text-primary); transition:transform .15s, opacity .15s, box-shadow .2s;
+  flex:1; font-size:16px; font-weight:800; cursor:pointer; min-height:52px;
+  border-radius:14px; padding:14px 10px; border:1.5px solid transparent;
+  background:var(--surface-2); color:var(--text-primary); transition:transform .15s, opacity .15s, box-shadow .2s, border-color .2s;
   display:flex; align-items:center; justify-content:center; gap:8px; text-decoration:none;
 }
 .btn svg { width:18px; height:18px; flex-shrink:0; }
 .btn:active { transform:scale(.97); }
-.btn.primary { flex:1.4; background:var(--accent-main); color:#fff; border-color:transparent; box-shadow:0 8px 20px rgba(16,185,129,.35); }
+.btn:hover { background:var(--surface-3); }
+.btn.primary { flex:1.4; background:var(--cta); color:var(--cta-ink); border-color:transparent; }
+.btn.primary:hover { background:var(--cta); filter:brightness(1.05); }
 .btn:disabled { opacity:.5; pointer-events:none; }
 .btn.danger { color:var(--danger); }
 
@@ -514,7 +630,7 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
 .sheet-handle { width:42px; height:5px; border-radius:5px; background:rgba(150,150,150,.45); margin:0 auto 4px; }
 .sheet-head { display:flex; align-items:center; justify-content:space-between; }
 .sheet-title { font-size:17px; font-weight:800; display:flex; align-items:center; gap:8px; }
-.sheet-title::before { content:'✓'; width:24px; height:24px; border-radius:50%; background:var(--accent-main); color:#fff; font-size:13px; display:flex; align-items:center; justify-content:center; }
+.sheet-title::before { content:'✓'; width:24px; height:24px; border-radius:50%; background:var(--accent-main); color:var(--on-accent); font-size:13px; display:flex; align-items:center; justify-content:center; }
 .sheet video { width:100%; max-height:56dvh; border-radius:14px; background:#000; }
 .hint { font-size:12px; color:var(--text-secondary); text-align:center; }
 .share-note { font-size:12px; color:var(--text-secondary); text-align:center; direction:ltr; }
@@ -526,8 +642,12 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
 <body>
 <div class="app">
   <div class="header">
-    <span class="icon-btn" aria-hidden="true" style="visibility:hidden"></span>
+    <img class="brand-mark" src="../icons/icon-192.png" alt="" width="40" height="40">
     <div class="header-title" data-i18n="vm_title">صانع فيديو الآيات</div>
+    <button class="icon-btn theme-btn" id="vmThemeBtn" type="button" data-i18n-title="vm_theme" title="الوضع الليلي" data-i18n-aria="vm_theme" aria-label="الوضع الليلي">
+      <svg class="ic-moon" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      <svg class="ic-sun" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
     <button class="icon-btn" onclick="openLanguage()" title="اللغة" data-i18n-title="nav_language" aria-label="Language">
       <svg class="action-icon" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
     </button>
@@ -570,7 +690,7 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
     <div class="controls-col">
       <section class="card">
         <div class="step-head">
-          <span class="step-num">1</span><span class="step-title" data-i18n="vm_step_ayat">الآيات</span>
+          <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5.5c2.6-1.4 5.4-1.4 8 0V19c-2.6-1.4-5.4-1.4-8 0zM21 5.5c-2.6-1.4-5.4-1.4-8 0V19c2.6-1.4 5.4-1.4 8 0z"/></svg></span><span class="step-title" data-i18n="vm_step_ayat">الآيات</span>
           <button type="button" class="search-btn" id="vmSearchBtn" aria-haspopup="dialog" data-i18n-title="vm_search" data-i18n-aria="vm_search" title="بحث في القرآن" aria-label="بحث في القرآن"><img src="../img/SVG/search.svg" alt="" style="width:18px;height:18px;"></button>
           <button type="button" class="popular-btn" id="vmPopularBtn" aria-haspopup="dialog">
             <svg class="spark" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.6 5.4 11.4 12 12-6.6.6-11.4 5.4-12 12-.6-6.6-5.4-11.4-12-12C6.6 11.4 11.4 6.6 12 0z"/></svg><span data-i18n="vm_popular">الأكثر استخداماً</span>
@@ -612,11 +732,88 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
       </section>
 
       <section class="card">
-        <div class="step-head"><span class="step-num">2</span><span class="step-title" data-i18n="vm_reciter">القارئ</span></div>
-        <button type="button" class="picker-btn" id="vmReciterBtn" aria-haspopup="dialog">
-          <span class="picker-main" id="vmReciterLabel"></span>
-        </button>
-        <select id="vmReciter" hidden aria-hidden="true" tabindex="-1"></select>
+        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span class="step-title" data-i18n="vm_reciter">القارئ</span></div>
+        <div class="formats fx" id="vmSource">
+          <button type="button" data-src="reciter" class="active" data-i18n="vm_src_reciter">قارئ من القائمة</button>
+          <button type="button" data-src="own" data-i18n="vm_src_own">تسجيلي الخاص</button>
+        </div>
+        <div id="vmReciterBox">
+          <button type="button" class="picker-btn" id="vmReciterBtn" aria-haspopup="dialog">
+            <span class="picker-main" id="vmReciterLabel"></span>
+          </button>
+          <select id="vmReciter" hidden aria-hidden="true" tabindex="-1"></select>
+        </div>
+        <div id="vmOwnBox" hidden>
+          <input type="file" id="vmOwnFile" accept="audio/*,video/mp4,video/webm,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.weba" hidden>
+          <div class="own-actions">
+            <button type="button" class="own-pick" id="vmOwnRec">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+              <span data-i18n="vm_rec_now">سجّل الآن</span>
+            </button>
+            <button type="button" class="own-pick" id="vmOwnPick">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+              <span class="own-pick-text" data-i18n="vm_own_pick">ارفع تسجيلك الصوتي</span>
+            </button>
+          </div>
+          <div class="own-info" id="vmOwnInfo" hidden>
+            <span class="own-file"><b id="vmOwnName"></b><small id="vmOwnMeta"></small></span>
+            <button type="button" class="own-del" id="vmOwnDel" data-i18n-title="vm_bg_delete" title="حذف" data-i18n-aria="vm_bg_delete" aria-label="حذف">×</button>
+          </div>
+          <button type="button" class="btn own-sync-btn" id="vmOwnSync" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h3l2-6 4 12 3-9 2 3h4"/></svg>
+            <span data-i18n="vm_own_sync">ضبط توقيت الآيات</span>
+          </button>
+          <div class="own-status" id="vmOwnStatus" aria-live="polite"></div>
+          <div class="fx-box" id="vmFxBox" hidden>
+            <div class="fx-head">
+              <span class="fx-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span data-i18n="vm_fx_title">مؤثرات صوتية احترافية</span></span>
+              <input type="checkbox" class="switch" id="vmFxOn" data-i18n-aria="vm_fx_master" aria-label="تشغيل المؤثرات">
+            </div>
+            <div class="fx-body" id="vmFxBody">
+              <div class="fx-group">
+                <label class="fx-sub"><span data-i18n="vm_fx_polish">تحسين الصوت</span><input type="checkbox" class="switch" id="vmFxPolish"></label>
+                <div class="fx-rows" id="vmFxPolishRows">
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_gate"></span><input type="range" id="vmFxGate" min="0" max="100" step="1"><output id="vmFxGateVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_warmth"></span><input type="range" id="vmFxWarmth" min="0" max="8" step="0.5"><output id="vmFxWarmthVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_clarity"></span><input type="range" id="vmFxClarity" min="0" max="8" step="0.5"><output id="vmFxClarityVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_comp"></span><input type="range" id="vmFxComp" min="0" max="100" step="1"><output id="vmFxCompVal" dir="ltr"></output></label>
+                  <label class="fx-row fx-check"><span class="fx-name" data-i18n="vm_fx_norm">رفع الصوت إلى مستوى ثابت</span><input type="checkbox" class="switch" id="vmFxNorm"></label>
+                </div>
+              </div>
+              <div class="fx-group">
+                <div class="fx-sub"><span data-i18n="vm_fx_reverb">صدى المكان</span></div>
+                <div class="fx-rooms" id="vmFxRooms">
+                  <button type="button" data-room="none" data-i18n="vm_fx_room_none">بدون</button>
+                  <button type="button" data-room="room" data-i18n="vm_fx_room_room">غرفة</button>
+                  <button type="button" data-room="mosque" data-i18n="vm_fx_room_mosque">مسجد</button>
+                  <button type="button" data-room="hall" data-i18n="vm_fx_room_hall">قاعة</button>
+                  <button type="button" data-room="haram" data-i18n="vm_fx_room_haram">الحرم</button>
+                </div>
+                <div class="fx-rows" id="vmFxRevRows">
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_amount"></span><input type="range" id="vmFxRevMix" min="0" max="0.6" step="0.01"><output id="vmFxRevMixVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_decay"></span><input type="range" id="vmFxRevDecay" min="0.3" max="8" step="0.1"><output id="vmFxRevDecayVal" dir="ltr"></output></label>
+                </div>
+              </div>
+              <div class="fx-group">
+                <div class="fx-sub"><span data-i18n="vm_fx_echo">الترديد</span></div>
+                <div class="fx-rows">
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_amount"></span><input type="range" id="vmFxEchoMix" min="0" max="0.6" step="0.01"><output id="vmFxEchoMixVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_delay"></span><input type="range" id="vmFxEchoDelay" min="0.06" max="0.8" step="0.01"><output id="vmFxEchoDelayVal" dir="ltr"></output></label>
+            <label class="fx-row"><span class="fx-name" data-i18n="vm_fx_repeats"></span><input type="range" id="vmFxEchoFb" min="0" max="0.75" step="0.01"><output id="vmFxEchoFbVal" dir="ltr"></output></label>
+                </div>
+              </div>
+              <button type="button" class="btn fx-listen" id="vmFxListen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 11v2"/></svg>
+                <span id="vmFxListenLabel" data-i18n="vm_fx_listen">استمع إلى المؤثرات</span>
+              </button>
+            </div>
+          </div>
+          <div class="own-private" data-i18n="vm_own_private">تسجيلك يبقى على جهازك ولا يُرفع إلى أي مكان.</div>
+        </div>
+        <div class="field">
+          <label class="label" for="vmSheikh" data-i18n="vm_sheikh_name">اسم القارئ المعروض</label>
+          <input type="text" id="vmSheikh" class="text-input" maxlength="60" autocomplete="off" dir="auto">
+        </div>
         <div class="dur-row" id="vmDuration" aria-live="polite">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           <span class="dur-label" data-i18n="vm_duration">مدة الفيديو</span>
@@ -625,12 +822,12 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
       </section>
 
       <section class="card only-long">
-        <div class="step-head"><span class="step-num">3</span><span class="step-title" data-i18n="vm_template">القالب</span></div>
+        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 9.5h8M9.5 14.5h5"/></svg></span><span class="step-title" data-i18n="vm_template">القالب</span></div>
         <div class="tpl-grid" id="vmTemplates"></div>
       </section>
 
       <section class="card" id="vmBgCard">
-        <div class="step-head"><span class="step-num" id="vmBgNum">3</span><span class="step-title" data-i18n="vm_background">الخلفية</span></div>
+        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 9"/></svg></span><span class="step-title" data-i18n="vm_background">الخلفية</span></div>
         <div class="bg-strip" id="vmBgs"></div>
         <input type="file" id="vmBgFile" accept="image/*,video/*" multiple hidden>
         <div class="bg-private" data-i18n="vm_bg_private">صورك وفيديوهاتك تبقى على جهازك ولا تُرفع إلى أي مكان.</div>
@@ -651,7 +848,7 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
       </section>
 
       <section class="card">
-        <div class="step-head"><span class="step-num" id="vmStyleNum">4</span><span class="step-title" data-i18n="vm_step_style">التنسيق</span></div>
+        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7V5h14v2M9.5 19h5M12 5v14"/></svg></span><span class="step-title" data-i18n="vm_step_style">التنسيق</span></div>
         <div class="field only-short">
           <div class="label" data-i18n="vm_format">المقاس</div>
           <div class="formats" id="vmFormat">
@@ -768,6 +965,53 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
     <div class="sheet-list" id="vmPopularList"></div>
   </div>
 </div>
+<div class="bottom-sheet rec-sheet" id="vmRecSheet" role="dialog" aria-modal="true">
+  <div class="drag-handle"></div>
+  <div class="sheet-header"><h2 data-i18n="vm_rec_title">التسجيل</h2><button class="icon-btn" type="button" data-close-pick aria-label="Close"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
+  <div class="sheet-content">
+    <div class="rec-top"><span class="rec-count" id="vmRecCount"></span><span class="rec-time" id="vmRecTime" dir="ltr">0:00</span></div>
+    <div class="rec-dots" id="vmRecDots" aria-hidden="true"></div>
+    <div class="rec-prompt" id="vmRecPrompt" role="button" tabindex="0" data-i18n-aria="vm_rec_next" aria-label="التالي">
+      <div class="rec-ayah" id="vmRecAyah" dir="rtl"></div>
+      <div class="rec-next" id="vmRecNext" dir="rtl"></div>
+      <div class="rec-countdown" id="vmRecCountdown" hidden></div>
+    </div>
+    <div class="rec-meter" aria-hidden="true"><span id="vmRecLevel"></span></div>
+    <div class="rec-status" id="vmRecStatus" aria-live="polite"></div>
+    <div class="rec-controls">
+      <button type="button" class="rec-side" id="vmRecBack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14l-5-5 5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span data-i18n="vm_rec_back">رجوع</span></button>
+      <button type="button" class="rec-main" id="vmRecMain"><span class="rec-dot" aria-hidden="true"></span><span id="vmRecMainLabel" data-i18n="vm_rec_start">ابدأ التسجيل</span></button>
+      <button type="button" class="rec-side rec-next-btn" id="vmRecNextBtn"><span id="vmRecNextLabel" data-i18n="vm_rec_next">التالي</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    </div>
+    <div class="rec-hint" data-i18n="vm_rec_hint">اقرأ الآية الظاهرة، واضغط «التالي» أو المس النص عندما تبدأ الآية التالية.</div>
+    <button type="button" class="rec-cancel" id="vmRecCancel" hidden data-i18n="vm_rec_cancel">إلغاء التسجيل</button>
+  </div>
+</div>
+<div class="bottom-sheet sync-sheet" id="vmSyncSheet" role="dialog" aria-modal="true">
+  <div class="drag-handle"></div>
+  <div class="sheet-header"><h2 data-i18n="vm_sync_title">ضبط توقيت الآيات</h2><button class="icon-btn" type="button" data-close-pick aria-label="Close"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
+  <div class="sheet-content">
+    <div class="sync-hint" data-i18n="vm_sync_hint">استمع وحرّك العلامات حتى تبدأ كل آية عند علامتها. اضغط ▶ بجانب أي آية لسماعها.</div>
+    <div class="sync-status" id="vmSyncStatus" aria-live="polite"></div>
+    <canvas id="vmSyncWave" class="sync-wave" aria-hidden="true"></canvas>
+    <div class="sync-bar">
+      <button type="button" class="sync-play" id="vmSyncPlay" aria-label="Play">▶</button>
+      <span class="sync-time" id="vmSyncTime" dir="ltr">0:00.0 / 0:00</span>
+      <span class="sync-zoom" id="vmSyncZoom" role="group">
+        <button type="button" data-win="10">10s</button>
+        <button type="button" data-win="30" class="active">30s</button>
+        <button type="button" data-win="120">2m</button>
+        <button type="button" data-win="0" data-i18n="vm_sync_all">الكل</button>
+      </span>
+    </div>
+    <div class="sync-actions">
+      <button type="button" class="filter-chip" id="vmSyncAuto" data-i18n="vm_sync_auto">تقسيم تلقائي</button>
+      <button type="button" class="filter-chip" id="vmSyncText" data-i18n="vm_sync_text">حسب طول النص</button>
+    </div>
+    <div class="sheet-list sync-list" id="vmSyncList"></div>
+    <button type="button" class="btn primary sync-done" id="vmSyncDone" data-i18n="vm_sync_done">تم</button>
+  </div>
+</div>
 <div class="bottom-sheet" id="vmReciterSheet" role="dialog" aria-modal="true">
   <div class="drag-handle"></div>
   <div class="sheet-header"><h2 data-i18n="takrar_choose_reciter">اختر القارئ</h2><button class="icon-btn" type="button" data-close-pick aria-label="Close"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
@@ -816,6 +1060,11 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
 <script src="../js/vendor/mp4-muxer.js"></script>
 <script src="../js/tv-templates.js"></script>
 <script src="../js/video-maker-long.js"></script>
+<script src="../js/own-recitation.js"></script>
+<script src="../js/video-maker-own.js"></script>
+<script src="../js/audio-fx.js"></script>
+<script src="../js/video-maker-fx.js"></script>
+<script src="../js/video-maker-rec.js"></script>
 <script src="../js/video-maker.js"></script>
 <script>
 function openLanguage() { if (window.I18n) I18n.openLangSheet(); }
@@ -825,7 +1074,7 @@ function openLanguage() { if (window.I18n) I18n.openLangSheet(); }
 // the "multiple pictures" switch shows but does nothing). Drop the stale copy from
 // every cache and reload once. Keep NEED in step with BUILD in js/video-maker.js.
 (function () {
-  var NEED = 6;
+  var NEED = 8;
   try {
     if (window.VM && VM.build >= NEED) { sessionStorage.removeItem('vmHealed'); return; }
     if (sessionStorage.getItem('vmHealed') || !window.caches) return;   // at most once per tab

@@ -10,6 +10,9 @@ Make Quran videos in the browser — nothing is uploaded anywhere.
   14 templates (10 painted backgrounds with the surah and reciter written into their plates, 4 ornament
   templates that work over any background). Long ayat shrink to fit and split into pages.
 
+Both tabs: **your own recording** («تسجيلي») — upload a recording of the range (MP3, M4A, WAV, OGG, up to 30 minutes)
+instead of choosing a reciter, and **edit the reciter name** shown on the video (for any recitation). See below.
+
 Both tabs: stroke + glow / glow / shadow / none text effect with a choice of glow and shadow colour, text
 colour and size, the user's own pictures and videos as backgrounds (kept on the device), the Quran text in the
 King Fahd Complex Hafs script, 42 reciters (everyayah.com), five interface languages (ar, en, tr, ur, ckb).
@@ -26,6 +29,49 @@ npm start            # http://localhost:8080  (any static server works: python3 
 Open `http://localhost:8080/` (it redirects to `pages/video-maker.html`). Use a secure origin
 (`localhost` or https) — WebCodecs and the service worker need one.
 
+## Your own recording («تسجيلي»)
+
+In step 2 choose **«تسجيلي الخاص»** and upload one recording that contains the range you chose, in order.
+It is kept on the device (IndexedDB) and never uploaded.
+
+A recording has no ayah timestamps, so the app proposes a split and you check it by ear:
+
+1. The recording is decoded once (48 kHz) and its loudness envelope is computed.
+2. The pauses between ayat give a first split: the N-1 longest pauses separate N ayat (`js/own-recitation.js`).
+   If the pauses can't be told apart, the time is shared by the length of each ayah's text instead.
+3. The **timing sheet** opens: a waveform with a marker at the start of each ayah (drag a marker, nudge it by
+   0.1 s, or set it to the playhead), the ayah being heard is highlighted while it plays, and the sheet says
+   how sure the split is.
+
+The boundaries are remembered per range (surah, first and last ayah, basmala), so a range already synced needs no work;
+a new range is split automatically and marked «راجع التوقيت» until you have looked at it. The video then plays and
+encodes slices of the one decoded recording — nothing is copied or downloaded, and a long video is exact (no «≈»).
+
+Limits: 30 minutes and 250 MB per recording (a decoded recording is held in memory while the video is made).
+The reciter-name field works with any recitation: leave it empty to show the reciter's own name (or «تلاوتي»).
+
+### Record in the app («سجّل الآن»)
+
+Instead of uploading, the user can recite straight into the app. A teleprompter shows the ayah to read (and the next
+one); the reader taps **«التالي»** — or the text, or Space — as they start each next ayah, and **«رجوع»** to undo a tap.
+The taps become the sync of the range, each one moved to the real pause nearest it (`snapTaps` in
+`js/own-recitation.js`), so the timing sheet that follows only needs a quick check. A 3-2-1 countdown, a level meter
+with a too-loud warning and a progress strip are included; closing the sheet while recording keeps the take.
+
+### Pro audio effects («مؤثرات صوتية احترافية»)
+
+For an own recording (uploaded or recorded), each with its own sliders, saved with the settings:
+
+- **Voice polish:** noise reduction (a gate tuned to the recording's own noise floor), warmth, clarity, evenness
+  (compressor) and a steady loudness. Switched on automatically for a new in-app take unless the effects were set by hand.
+- **Room reverb:** Room, Mosque, Hall and Haram presets, with amount and length.
+- **Echo:** amount, delay and repeats.
+
+Nothing is applied to the stored recording. The same Web Audio chain (`js/audio-fx.js`, with the gate in
+`js/fx-gate-worklet.js`) runs live for the preview, «استمع إلى المؤثرات» and the Shorts recording, and in an
+OfflineAudioContext slice by slice for the fast long-video export (each slice starts with the audio before it, so
+reverb and echo tails carry over) — what you hear is what is exported.
+
 ## How the fast export works (long video)
 
 A long video is not recorded in real time:
@@ -41,6 +87,16 @@ Measured with software encoding: a 35-minute video in about 77 s. Audio is AAC w
 Opus-in-MP4 otherwise. Browsers without WebCodecs fall back to real-time recording (as long as the video itself,
 and the Shorts tab always works that way).
 
+## Design
+
+A video-editor surface (in the spirit of CapCut or VN): neutral near-black, so the video preview is the colour on
+screen, with the gold from the app icon as the only accent (the main button and selected states). It opens dark; the
+header button switches to a light version that follows the same rules (a sepia version exists for the shared theme
+setting). Two Arabic faces with clear roles, both bundled for offline use: Cairo for titles, tabs and buttons, Tajawal
+for everything you read. Sections are marked with line icons,
+surfaces are flat (no glass, no shadows). Every text/background pair is at least 4.5:1, the main controls are at
+least 44 px, focus is always visible and motion respects *reduce motion* — `tests/ux.spec.js` keeps these from slipping.
+
 ## Project layout
 
 | Path | What |
@@ -48,6 +104,9 @@ and the Shorts tab always works that way).
 | `pages/video-maker.html` | the page |
 | `js/video-maker.js` | the Shorts tab, the shared pickers, data and text drawing |
 | `js/video-maker-long.js` | the Long video tab: layout, caching, preview, fast export |
+| `js/video-maker-own.js`, `js/own-recitation.js` | your own recording: storage, decoding, the timing sheet; the pause-based split and the tap snapping (unit-tested) |
+| `js/video-maker-rec.js` | the in-app recorder (teleprompter, live sync) |
+| `js/audio-fx.js`, `js/fx-gate-worklet.js`, `js/video-maker-fx.js` | the audio effects and their panel |
 | `js/tv-templates.js` | the template registry (positions are percentages of the 16:9 frame) |
 | `js/vendor/mp4-muxer.js` | MP4 writer (MIT) |
 | `images/tv-maker/` | long-video pictures — see its [README](images/tv-maker/README.md) |
@@ -70,7 +129,8 @@ picture to `sw.js` only if you want it precached (everything is cached on first 
   with the King Fahd Complex (QPC Hafs) encoding in `data/quran-qpc.json`, checked against it when the page loads.
 - Recitations are streamed from [everyayah.com](https://everyayah.com).
 - [mp4-muxer](https://github.com/Vanilagy/mp4-muxer) by Vanilagy, MIT.
-- Ornaments and painted backgrounds: supplied for the project.
+- [Cairo](https://github.com/Gue3bara/Cairo) and [Tajawal](https://github.com/boutrosfonts/Tajawal), SIL Open Font License 1.1 (`fonts/cairo/OFL.txt`, `fonts/Tajawal-OFL.txt`).
+- Ornaments, painted backgrounds, the app icon (`icons/source/`) and the misty-lake background (`images/video-maker/31.webp`): supplied for the project.
 
 ## License
 

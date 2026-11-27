@@ -6,12 +6,13 @@
 //     first time it is used.
 //   - Recitation MP3s: cache-first, filled on first use.
 // Bump VERSION whenever a cached file changes.
-const VERSION = 'qvm-v3';
+const VERSION = 'qvm-v9';
 const AUDIO = 'qvm-audio-v1';
 const CORE = [
   './', './index.html', './manifest.json',
   './pages/video-maker.html',
   './css/fonts.css', './css/svg-theme.css',
+  './fonts/cairo/cairo-arabic-wght-normal.woff2', './fonts/cairo/cairo-latin-wght-normal.woff2', './fonts/tajawal-arabic-500-normal.woff2', './fonts/tajawal-latin-500-normal.woff2',
   './fonts/Tajawal.ttf', './fonts/Tajawal-Bold.ttf', './fonts/uthmani-colored.ttf',
   './fonts/UthmanicHafs_V20.ttf', './fonts/Scheherazade.ttf', './fonts/Amiri.ttf',
   './data/quran.json', './data/quran-qpc.json',
@@ -22,7 +23,7 @@ const CORE = [
   './js/back-close.js', './js/i18n.js', './js/mp4-faststart.js', './js/net-status.js',
   './js/popular-ayat.js', './js/quran-text-source.js', './js/reciters.js', './js/surah-map.js',
   './js/svg-injector.js', './js/theme-manager.js', './js/tv-templates.js',
-  './js/video-maker-long.js', './js/video-maker.js', './js/vendor/mp4-muxer.js',
+  './js/video-maker-long.js', './js/video-maker-own.js', './js/own-recitation.js', './js/video-maker-rec.js', './js/video-maker-fx.js', './js/audio-fx.js', './js/fx-gate-worklet.js', './js/video-maker.js', './js/vendor/mp4-muxer.js',
   './js/i18n/ar.js', './js/i18n/ckb.js', './js/i18n/en.js', './js/i18n/names.js',
   './js/i18n/tr.js', './js/i18n/ur.js',
 ];

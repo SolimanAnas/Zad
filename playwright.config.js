@@ -2,6 +2,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
+  testIgnore: '**/node/**',        // plain Node unit tests: npm run test:unit
   timeout: 30000,
   use: {
     headless: true,
