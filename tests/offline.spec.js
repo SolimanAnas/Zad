@@ -1,6 +1,12 @@
 // The app works offline after the first visit: the service worker precaches the page,
 // scripts, fonts and Quran text, so a reload with no connection still opens the maker.
 const { test, expect } = require('@playwright/test');
+// the settings are in tabs (الآيات / الصوت / المظهر / النص): open the one a control is on
+const sec = (page, name) => expect(async () => {
+  const tab = page.locator('#vmTab-' + name);
+  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click({ timeout: 2000 });
+  await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 500 });
+}).toPass({ timeout: 15000 });
 
 const BASE_URL = 'http://localhost:8080';
 
@@ -19,5 +25,6 @@ test('after the first visit the page opens with no connection', async ({ page, c
   await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
   await expect(page.locator('#vmModeTabs [data-mode="long"]')).toBeVisible();
   await page.locator('#vmModeTabs [data-mode="long"]').click();
+  await sec(page, 'look');
   await expect(page.locator('#vmTemplates .tpl-thumb')).toHaveCount(14);
 });

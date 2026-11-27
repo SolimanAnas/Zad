@@ -165,6 +165,7 @@
       vm_sync_from_start: 'استمع من البداية',
       vm_sync_next_here: 'الآية التالية تبدأ هنا',
       vm_sync_follow: 'زامن الآيات التالية تلقائياً',
+      vm_sections: 'أقسام الإعدادات', vm_sec_audio: 'الصوت', vm_sec_look: 'المظهر', vm_sec_text: 'النص',
       vm_count_1: 'آية واحدة', vm_count_2: 'آيتان', vm_count_few: '{n} آيات', vm_count_many: '{n} آية',
       vm_back_to_preview: 'العودة إلى المعاينة', vm_style_reset: 'إعادة تنسيق النص الافتراضي',
       vm_caption_long_note: 'إطارات الاسمين في القالب تبقى فارغة',
@@ -279,6 +280,7 @@
       vm_sync_from_start: 'Listen from the start',
       vm_sync_next_here: 'Next ayah starts here',
       vm_sync_follow: 'Sync the following ayat automatically',
+      vm_sections: 'Settings sections', vm_sec_audio: 'Audio', vm_sec_look: 'Look', vm_sec_text: 'Text',
       vm_count_1: '1 ayah', vm_count_2: '2 ayat', vm_count_few: '{n} ayat', vm_count_many: '{n} ayat',
       vm_back_to_preview: 'Back to the preview', vm_style_reset: 'Reset the text style',
       vm_caption_long_note: "The template's name frames stay empty",
@@ -1295,6 +1297,46 @@
     $('vmMiniBar').style.width = w;
   }
 
+  // ---------- section tabs ----------
+  // The settings come in four parts (ayat, audio, look, text), one shown at a time and picked
+  // in any order. The create bar stays in place whichever is open.
+  const SECS = ['ayat', 'audio', 'look', 'text'];
+  let secNow = 'ayat';
+  function showSection(name, opts) {
+    if (!SECS.includes(name)) return;
+    secNow = name;
+    document.querySelectorAll('#vmSecTabs [role="tab"]').forEach(t => {
+      const on = t.dataset.sec === name;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+    });
+    document.querySelectorAll('.controls-col > section[data-sec]').forEach(sec => sec.classList.toggle('sec-off', sec.dataset.sec !== name));
+    // If the bar is stuck at the top, start the new part right under it (not halfway down).
+    const bar = $('vmSecTabs');
+    if (opts && opts.scroll && bar.getBoundingClientRect().top <= 1) {
+      const top = bar.parentElement.getBoundingClientRect().top + scrollY;
+      scrollTo({ top, behavior: 'auto' });
+    }
+    if (opts && opts.focus) $('vmTab-' + name).focus();
+  }
+  function bindSections() {
+    const tabs = [...document.querySelectorAll('#vmSecTabs [role="tab"]')];
+    tabs.forEach(t => { t.onclick = () => showSection(t.dataset.sec, { scroll: true }); });
+    $('vmSecTabs').addEventListener('keydown', e => {
+      const i = SECS.indexOf(secNow);
+      const rtl = document.documentElement.dir === 'rtl';
+      let j = -1;
+      if (e.key === 'ArrowLeft') j = rtl ? i + 1 : i - 1;
+      else if (e.key === 'ArrowRight') j = rtl ? i - 1 : i + 1;
+      else if (e.key === 'Home') j = 0;
+      else if (e.key === 'End') j = SECS.length - 1;
+      if (j < 0 && e.key !== 'Home') return;
+      e.preventDefault();
+      showSection(SECS[(j + SECS.length) % SECS.length], { scroll: true, focus: true });
+    });
+    showSection('ayat');
+  }
+
   // ---------- mini preview (phones) ----------
   // Once the preview has scrolled away, a live copy of the video sits in the top corner, so a
   // change to the text, the colours or the background shows at once. Tap it to go back up.
@@ -1378,7 +1420,7 @@
     busy = on;
     $('vmExport').disabled = on;
     $('vmPreview').hidden = on;
-    document.querySelectorAll('.controls-col input, .controls-col select, .controls-col button, #vmModeTabs button').forEach(el => { el.disabled = on; });
+    document.querySelectorAll('.controls-col input, .controls-col select, .controls-col button:not([role="tab"]), #vmModeTabs button').forEach(el => { el.disabled = on; });
     if (!on) $('vmCancel').hidden = true;
   }
 
@@ -2296,6 +2338,7 @@
     $('vmHalo').oninput = () => setHalo($('vmHalo').value);
     $('vmPreview').onclick = () => { if (!playing) revealStage(); togglePreview(); };
     setupMini();
+    bindSections();
     const markTheme = () => $('vmThemeBtn').setAttribute('aria-pressed', window.ThemeManager && ThemeManager.get() === 'dark' ? 'true' : 'false');
     markTheme();
     $('vmThemeBtn').onclick = () => {
@@ -2452,6 +2495,6 @@
   // Bump BUILD whenever pages/video-maker.html starts depending on new script
   // features; the page reloads once with a fresh copy if it gets an older one.
   const BUILD = 8;   // 8: in-app recorder + audio effects, 7: own recording («تسجيلي») + editable reciter name, 6: long video tab (js/video-maker-long.js), 5: user's own backgrounds, 4: mushaf font + QPC Hafs text, 3: Quran search sheet (2: multi-picture slideshow)
-  window.VM = { build: BUILD, state, renderFrame, buildTimeline, loadAyahAudio, exportVideo, get bgVideo() { return bgVideo; }, get loopJob() { return loopJob; } };
+  window.VM = { showSection, get section() { return secNow; }, build: BUILD, state, renderFrame, buildTimeline, loadAyahAudio, exportVideo, get bgVideo() { return bgVideo; }, get loopJob() { return loopJob; } };
   init();
 })();

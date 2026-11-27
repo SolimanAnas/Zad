@@ -1,6 +1,12 @@
 // UI floor: touch targets of at least 44 px on the controls used most, and readable text on
 // the selected states in every theme (light, dark, sepia).
 const { test, expect } = require('@playwright/test');
+// the settings are in tabs (الآيات / الصوت / المظهر / النص): open the one a control is on
+const sec = (page, name) => expect(async () => {
+  const tab = page.locator('#vmTab-' + name);
+  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click({ timeout: 2000 });
+  await expect(tab).toHaveAttribute('aria-selected', 'true', { timeout: 500 });
+}).toPass({ timeout: 15000 });
 
 const BASE_URL = 'http://localhost:8080';
 test.use({ serviceWorkers: 'block', viewport: { width: 375, height: 760 } });
@@ -11,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 
 const TARGETS = ['#vmModeTabs [data-mode="short"]', '#vmModeTabs [data-mode="long"]', '#vmSearchBtn', '#vmPopularBtn',
   '#vmSurahBtn', '.stepper button', '#vmReciterBtn', '#vmSource [data-src="own"]', '#vmFormat button',
-  '#vmTextFx button', '#vmPreview', '#vmExport', '.header .icon-btn', '#vmThemeBtn'];
+  '#vmTextFx button', '#vmPreview', '#vmExport', '.header .icon-btn', '#vmThemeBtn', '#vmSecTabs [role="tab"]'];
 
 test('opens dark by default, and the header button switches to light and back', async ({ page }) => {
   await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
@@ -45,7 +51,10 @@ test('the main controls are at least 44 px tall', async ({ page }) => {
   // (the theme button joins the header's language button)
   await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
   await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  const SEC = { '#vmSearchBtn': 'ayat', '#vmPopularBtn': 'ayat', '#vmSurahBtn': 'ayat', '.stepper button': 'ayat',
+    '#vmReciterBtn': 'audio', '#vmSource [data-src="own"]': 'audio', '#vmFormat button': 'text', '#vmTextFx button': 'text' };
   for (const sel of TARGETS) {
+    if (SEC[sel]) await sec(page, SEC[sel]);
     const box = await page.locator(sel).first().boundingBox();
     expect(box, sel).not.toBeNull();
     expect(box.height, sel + ' height').toBeGreaterThanOrEqual(44);
@@ -93,6 +102,7 @@ test('sheets: focus in, Tab kept inside, Escape closes, focus returns', async ({
     const named = await page.evaluate(i => { const d = document.getElementById(i); const t = document.getElementById(d.getAttribute('aria-labelledby')); return !!(t && t.textContent.trim()); }, id);
     expect(named, id + ' is named by its title').toBe(true);
   }
+  await sec(page, 'ayat');
   await page.locator('#vmSurahBtn').focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#vmSurahSheet')).toHaveClass(/active/);
@@ -110,6 +120,7 @@ test('every control has a name, and nothing is wider than a 320 px phone', async
   await page.setViewportSize({ width: 320, height: 760 });
   await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
   await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  await sec(page, 'look');
   await expect(page.locator('#vmBgs [data-bg]').first()).toBeVisible();
   const r = await page.evaluate(() => {
     const name = el => (el.getAttribute('aria-label') || (el.getAttribute('aria-labelledby') && document.getElementById(el.getAttribute('aria-labelledby'))?.textContent) ||
@@ -139,7 +150,9 @@ test('mini preview while editing, and the text controls say what they are set to
   await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
   await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
   await expect(page.locator('#vmMini')).toBeHidden();
+  await sec(page, 'ayat');
   await expect(page.locator('#vmAyahCount')).toHaveText('٧ آيات');
+  await sec(page, 'text');
   await page.locator('#vmFont').scrollIntoViewIfNeeded();
   await expect(page.locator('#vmMini')).toBeVisible();
   // it is the video: not blank
@@ -149,25 +162,39 @@ test('mini preview while editing, and the text controls say what they are set to
     return s / (d.length / 4);
   })).toBeGreaterThan(20);
   // text size shows its value; reset brings the style back
+  await sec(page, 'text');
   await expect(page.locator('#vmFontVal')).toHaveText('١٠٠٪');
+  await sec(page, 'text');
   await page.locator('#vmFont').fill('1.3');
+  await sec(page, 'text');
   await expect(page.locator('#vmFontVal')).toHaveText('١٣٠٪');
+  await sec(page, 'text');
   await page.locator('#vmTextFx [data-fx="none"]').click();
+  await sec(page, 'text');
   await expect(page.locator('#vmHaloField')).toBeHidden();                 // nothing to colour
+  await sec(page, 'text');
   await page.locator('#vmStyleReset').click();
+  await sec(page, 'text');
   await expect(page.locator('#vmFontVal')).toHaveText('١٠٠٪');
+  await sec(page, 'text');
   await expect(page.locator('#vmTextFx [data-fx="strokeglow"]')).toHaveClass(/active/);
+  await sec(page, 'text');
   await expect(page.locator('#vmHaloField')).toBeVisible();
   // colours are named, not hex codes
+  await sec(page, 'text');
   await expect(page.locator('#vmColors [data-color="#e6c068"]')).toHaveAttribute('aria-label', 'ذهبي');
   // back to the preview
   await page.locator('#vmMini').click();
   await expect(page.locator('#vmMini')).toBeHidden({ timeout: 5000 });
-  expect(await page.evaluate(() => { const r = document.getElementById('vmStage').getBoundingClientRect(); return r.top >= -1 && r.top < innerHeight; })).toBe(true);
+  await expect.poll(() => page.evaluate(() => { const r = document.getElementById('vmStage').getBoundingClientRect(); return r.top >= -1 && r.top < innerHeight; })).toBe(true);
   // one range count rule for Arabic: 1, 2, 3–10, 11+
+  await sec(page, 'ayat');
   await page.fill('#vmTo', '1'); await page.locator('#vmTo').dispatchEvent('change');
+  await sec(page, 'ayat');
   await expect(page.locator('#vmAyahCount')).toHaveText('آية واحدة');
+  await sec(page, 'ayat');
   await page.fill('#vmTo', '2'); await page.locator('#vmTo').dispatchEvent('change');
+  await sec(page, 'ayat');
   await expect(page.locator('#vmAyahCount')).toHaveText('آيتان');
 });
 
@@ -178,4 +205,36 @@ test('each colour row fits on one line on a phone', async ({ page }) => {
     const tops = await page.locator(row + ' > *').evaluateAll(els => [...new Set(els.map(e => Math.round(e.getBoundingClientRect().top)))]);
     expect(tops.length, row).toBe(1);
   }
+});
+
+// The settings are four tabs: one part at a time, any order, arrow keys move between them,
+// and the create bar stays whichever is open.
+test('section tabs: one part at a time, in any order, by touch or keyboard', async ({ page }) => {
+  await page.addInitScript(() => { if (!sessionStorage.getItem('s')) { sessionStorage.setItem('s', '1'); localStorage.setItem('zad_lang', 'ar'); localStorage.removeItem('vm_settings'); } });
+  await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  const shown = () => page.evaluate(() => [...document.querySelectorAll('.controls-col > section[data-sec]')]
+    .filter(s => s.getClientRects().length).map(s => s.dataset.sec));
+  expect(await shown()).toEqual(['ayat']);
+  await page.locator('#vmTab-text').click();                                  // straight to the last one
+  expect(await shown()).toEqual(['text']);
+  await expect(page.locator('#vmTab-text')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#vmExport')).toBeVisible();
+  // keyboard: in Arabic the next tab is to the left
+  await page.locator('#vmTab-text').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#vmTab-look')).toBeFocused();
+  expect(await shown()).toEqual(['look']);
+  await page.keyboard.press('Home');
+  expect(await shown()).toEqual(['ayat']);
+  // the bar stays at the top while the part below it scrolls
+  await page.locator('#vmTab-text').click();
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  const top = await page.locator('#vmSecTabs').evaluate(el => el.getBoundingClientRect().top);
+  expect(top).toBeLessThan(2);
+  // switching while it is stuck starts the new part right under the bar
+  await page.locator('#vmTab-audio').click();
+  const gap = await page.evaluate(() => document.querySelector('section[data-sec="audio"]').getBoundingClientRect().top - document.getElementById('vmSecTabs').getBoundingClientRect().bottom);
+  expect(gap).toBeGreaterThanOrEqual(0);
+  expect(gap).toBeLessThan(30);
 });
