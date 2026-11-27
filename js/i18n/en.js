@@ -1025,6 +1025,8 @@ export default {
   'vm_sync_unsure': "The pauses are too alike to be sure — listen and correct the boundaries",
   'vm_sync_by_text': "Not enough pauses were found, so the time was shared by the length of each ayah — correct the boundaries by listening",
   'vm_sync_manual': "Timing edited by hand",
+  'vm_loop_preparing': "Preparing a seamless loop for the background… {p}%",
+  'vm_loop_wait': "Preparing a seamless loop for the background before creating… {p}% — only the first time",
   'vm_sync_ayah': "Ayah {i} of {n}",
   'vm_sync_prev': "Previous",
   'vm_sync_next': "Next",

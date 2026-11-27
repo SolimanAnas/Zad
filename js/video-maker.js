@@ -93,6 +93,10 @@
   let bgImages = [];      // filenames from the manifest
   let bgImg = null;       // loaded Image for the current 'i:' background
   let bgVideo = null;     // <video> for the current 'v:' background (muted, looping)
+  // Forward-then-backward ("ping-pong") looping, so a short clip repeats without a cut:
+  // the built-in clips ship as <name>.pp.mp4 (scripts/gen-pingpong.cjs); a clip the user added
+  // gets one made on first use (js/video-pingpong.js) and cached.
+  let loopJob = null;     // { id, cancelled, done, pending, p, report, promise }
   let bgPoster = null;    // full-size still of that video, drawn until it has a frame
   let move = MOVES[0];    // camera move for the current clip
   let slideMoves = MOVES.slice();   // one camera move per slideshow picture
@@ -152,6 +156,8 @@
       vm_sync_unsure: 'الفواصل متقاربة فلا يمكن الجزم — استمع وصحّح الحدود',
       vm_sync_by_text: 'لم تُوجد فواصل كافية، فقُسّم الوقت حسب طول كل آية — صحّح الحدود بالاستماع',
       vm_sync_manual: 'عُدّل التوقيت يدوياً',
+      vm_loop_preparing: 'جارٍ تجهيز تكرار سلس للخلفية… {p}٪',
+      vm_loop_wait: 'جارٍ تجهيز تكرار سلس للخلفية قبل الإنشاء… {p}٪ — يحدث مرة واحدة فقط',
       vm_sync_ayah: 'الآية {i} من {n}',
       vm_sync_prev: 'السابقة',
       vm_sync_next: 'التالية',
@@ -248,6 +254,8 @@
       vm_sync_unsure: 'The pauses are too alike to be sure — listen and correct the boundaries',
       vm_sync_by_text: 'Not enough pauses were found, so the time was shared by the length of each ayah — correct the boundaries by listening',
       vm_sync_manual: 'Timing edited by hand',
+      vm_loop_preparing: 'Preparing a seamless loop for the background… {p}%',
+      vm_loop_wait: 'Preparing a seamless loop for the background before creating… {p}% — only the first time',
       vm_sync_ayah: 'Ayah {i} of {n}',
       vm_sync_prev: 'Previous',
       vm_sync_next: 'Next',
@@ -566,6 +574,7 @@
     bgImages = bgImages.filter(f => f !== name);
     const ids = ['i:' + name, 'v:' + name];
     ids.forEach(id => imgCache.delete(id));
+    if (window.PingPong) PingPong.drop(name);
     const before = state.bgs.length;
     state.bgs = state.bgs.filter(id => !ids.includes(id));
     fillBackgrounds();
@@ -1144,12 +1153,72 @@
     });
   }
 
+  // ---------- forward-then-backward looping of the background video ----------
+  const ppSrc = f => BG_DIR + encodeURI(f.replace(/\.(mp4|webm)$/i, '.pp.mp4'));
+  const pct = p => { const n = String(Math.round(Math.max(0, Math.min(1, p)) * 100)); return arabicNames() ? arDigits(n) : n; };
+  // Starts making the forward-and-back clip of a video the user added (or takes it from the cache).
+  function loopFor(id, file, v) {
+    if (!window.PingPong || !PingPong.supported()) return;
+    const job = { id, cancelled: false, done: false, pending: null, p: 0, report: null, promise: null };
+    loopJob = job;
+    let shown = '';
+    job.promise = PingPong.get(bgSrc(file), file, {
+      onProgress: p => {
+        job.p = p;
+        if (job.report) job.report(p);
+        else if (!busy && !job.cancelled && p < 1) { shown = tr('vm_loop_preparing', { p: pct(p) }); setStatus(shown); }
+      },
+      isCancelled: () => job.cancelled || state.bg !== id,
+    }).then(r => {
+      if (r && !job.cancelled && state.bg === id && bgVideo === v) { job.pending = r.blob; applyLoop(job); }
+    }).catch(e => console.warn('[video-maker] loop failed', e)).finally(() => {
+      job.done = true;
+      if (shown && $('vmStatus').textContent === shown) setStatus('');
+    });
+  }
+  // Swaps in the finished clip, unless something is playing (it waits for the next stop / start).
+  function applyLoop(job) {
+    const v = bgVideo;
+    if (!job || !job.pending || !v || state.bg !== job.id || playing) return false;
+    const old = v.__ppUrl;
+    v.__ppUrl = URL.createObjectURL(job.pending);
+    job.pending = null;
+    v.src = v.__ppUrl;                 // 'loadeddata' shows the idle still again
+    v.load();
+    if (old) URL.revokeObjectURL(old);
+    return true;
+  }
+  // An export records the seamless clip: it waits for it (once, a few seconds), and can be cancelled.
+  async function waitLoop() {
+    const job = loopJob;
+    if (!job || job.cancelled || state.bg !== job.id) return true;
+    if (!job.done) {
+      let abort = false;
+      cancelExport = () => { abort = true; };
+      const say = p => setStatus(tr('vm_loop_wait', { p: pct(p) }));
+      job.report = say;
+      say(job.p);
+      await new Promise(resolve => {
+        const t = setInterval(() => { if (abort) { clearInterval(t); resolve(); } }, 150);
+        job.promise.then(() => { clearInterval(t); resolve(); });
+      });
+      job.report = null;
+      cancelExport = null;
+      if (abort) { setStatus(''); return false; }
+      setStatus('');
+    }
+    applyLoop(job);
+    if (bgVideo && bgVideo.readyState < 2) await new Promise(r => { bgVideo.addEventListener('loadeddata', r, { once: true }); setTimeout(r, 4000); });
+    return true;
+  }
+
   // The video loops on its own; each tick just draws whatever frame is current.
   // Resolves once frames are actually flowing (or after 3 s) so a recording
   // never opens on a blank background.
   function startBgVideo() {
     const v = bgVideo;
     if (!v || !state.bg.startsWith('v:') || slideIds().length) return Promise.resolve();
+    if (loopJob && loopJob.pending) applyLoop(loopJob);       // a clip finished while something played
     return new Promise(resolve => {
       const done = () => { clearTimeout(timer); v.removeEventListener('playing', done); resolve(); };
       const timer = setTimeout(done, 3000);
@@ -1171,6 +1240,7 @@
     if (playing.dispose) setTimeout(playing.dispose, 50);
     const wasListening = !!playing.listen;
     playing = null;
+    if (loopJob && loopJob.pending) applyLoop(loopJob);
     if (wasListening && fxUi) fxUi.render();
     setBadge('');
     updatePreviewBtn();
@@ -1415,6 +1485,7 @@
     $('vmCancel').hidden = false;
     const tl = await loadTimelineWithUi();
     if (!tl) { setBusy(false); return; }
+    if (!(await waitLoop())) { setBusy(false); return; }
 
     let wakeLock = null;
     try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* optional */ }
@@ -1869,9 +1940,11 @@
   function selectBackground(id) {
     if (/^[iv]:/.test(id) && !bgImages.includes(id.slice(2))) id = 'g0';
     if (bgVideo && state.bg !== id) {
+      if (loopJob) loopJob.cancelled = true;
       bgVideo.pause();
       bgVideo.removeAttribute('src');
       bgVideo.load();   // releases the decoder on mobile
+      if (bgVideo.__ppUrl) URL.revokeObjectURL(bgVideo.__ppUrl);
       bgVideo = null;
       bgPoster = null;
     }
@@ -1895,7 +1968,16 @@
       // Show a still from half a second in while idle — frame 0 is often a fade from black.
       v.addEventListener('loadeddata', () => { if (state.bg === id && !playing) v.currentTime = 0.5; renderIdle(); });
       v.addEventListener('seeked', renderIdle);
-      v.src = bgSrc(id.slice(2));
+      const file = id.slice(2);
+      if (isUserBg(file)) {
+        v.src = bgSrc(file);
+        loopFor(id, file, v);                 // its forward-and-back clip is made in the background
+      } else {
+        // the shipped forward-and-back clip; without it the original simply loops
+        v.src = ppSrc(file);
+        v.__pp = true;
+        v.addEventListener('error', () => { if (v.__pp) { v.__pp = false; v.src = bgSrc(file); } });
+      }
       bgVideo = v;
       const poster = new Image();
       poster.onload = () => { if (state.bg === id) renderIdle(); };
@@ -2192,6 +2274,6 @@
   // Bump BUILD whenever pages/video-maker.html starts depending on new script
   // features; the page reloads once with a fresh copy if it gets an older one.
   const BUILD = 8;   // 8: in-app recorder + audio effects, 7: own recording («تسجيلي») + editable reciter name, 6: long video tab (js/video-maker-long.js), 5: user's own backgrounds, 4: mushaf font + QPC Hafs text, 3: Quran search sheet (2: multi-picture slideshow)
-  window.VM = { build: BUILD, state, renderFrame, buildTimeline, loadAyahAudio, exportVideo };
+  window.VM = { build: BUILD, state, renderFrame, buildTimeline, loadAyahAudio, exportVideo, get bgVideo() { return bgVideo; }, get loopJob() { return loopJob; } };
   init();
 })();

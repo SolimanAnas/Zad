@@ -997,6 +997,8 @@ export default {
   'vm_sync_unsure': "Aralıklar birbirine yakın, emin olunamıyor — dinleyin ve sınırları düzeltin",
   'vm_sync_by_text': "Yeterli aralık bulunamadı; süre ayetlerin uzunluğuna göre paylaştırıldı — sınırları dinleyerek düzeltin",
   'vm_sync_manual': "Zamanlar elle düzenlendi",
+  'vm_loop_preparing': "Arka plan için kesintisiz döngü hazırlanıyor… %{p}",
+  'vm_loop_wait': "Oluşturmadan önce arka plan için kesintisiz döngü hazırlanıyor… %{p} — yalnızca ilk seferde",
   'vm_sync_ayah': "Ayet {i}/{n}",
   'vm_sync_prev': "Önceki",
   'vm_sync_next': "Sonraki",
