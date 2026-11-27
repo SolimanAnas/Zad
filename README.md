@@ -39,9 +39,13 @@ A recording has no ayah timestamps, so the app proposes a split and you check it
 1. The recording is decoded once (48 kHz) and its loudness envelope is computed.
 2. The pauses between ayat give a first split: the N-1 longest pauses separate N ayat (`js/own-recitation.js`).
    If the pauses can't be told apart, the time is shared by the length of each ayah's text instead.
-3. The **timing sheet** opens: a waveform with a marker at the start of each ayah (drag a marker, nudge it by
-   0.1 s, or set it to the playhead), the ayah being heard is highlighted while it plays, and the sheet says
-   how sure the split is.
+3. The **timing sheet** opens and takes you through the recording **one ayah after the other, to the end of the
+   track**: it shows the ayah being checked and its start; listen, and when you hear the next ayah begin tap
+   **«الآية التالية تبدأ هنا»** — that marker goes to the pause just before it and the check moves on while the
+   audio keeps playing. «التالية» / «السابقة» step through the ayat (each plays from its start), the start can be
+   nudged by 0.1 s or set to the playhead, and the last step marks where the recitation ends. Moving a marker past the
+   ones after it pushes them along, so a pass from start to end never gets stuck. The full list, the waveform
+   (drag a marker) and the split's confidence stay available.
 
 The boundaries are remembered per range (surah, first and last ayah, basmala), so a range already synced needs no work;
 a new range is split automatically and marked «راجع التوقيت» until you have looked at it. The video then plays and

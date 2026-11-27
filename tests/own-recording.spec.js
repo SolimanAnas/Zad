@@ -81,7 +81,8 @@ test('upload: the pauses give the split, the sheet fixes it, the length follows'
   REC.starts.forEach((s, i) => expect(Math.abs(times[i] - s)).toBeLessThan(0.45));
   expect(await page.evaluate(() => VM.state.recSource)).toBe('own');
 
-  // Fix the third boundary by hand, then close.
+  // Fix the third boundary by hand (the full list is under «كل الآيات»), then close.
+  await page.locator('#vmSyncAll summary').click();
   await page.locator('#vmSyncList .sync-row[data-i="2"] input').fill('5.0');
   await page.locator('#vmSyncList .sync-row[data-i="2"] input').dispatchEvent('change');
   await expect(page.locator('#vmSyncList .sync-row[data-i="2"] input')).toHaveValue('5.0');
@@ -175,4 +176,62 @@ test('Shorts: the preview and the recorded video use the uploaded recording', as
   });
   expect(info.size).toBeGreaterThan(10000);
   if (isFinite(info.duration)) { expect(info.duration).toBeGreaterThan(4); expect(info.duration).toBeLessThan(9); }
+});
+
+test('the timing sheet goes ayah by ayah to the end of the track', async ({ page }) => {
+  test.setTimeout(90000);
+  await open(page);
+  await page.locator('#vmSource [data-src="own"]').click();
+  await upload(page);
+  await expect(page.locator('#vmSyncList .sync-row')).toHaveCount(8, { timeout: 30000 });   // 7 ayat + the end
+  const focus = page.locator('#vmSyncFocusCount');
+  const times = () => page.locator('#vmSyncList .sync-row input').evaluateAll(els => els.map(e => parseFloat(e.value)));
+  const startTimes = await times();
+
+  // It starts on the first ayah; «previous» is off there, and the button says what it will do.
+  await expect(focus).toHaveText('الآية ١ من ٧');
+  await expect(page.locator('#vmSyncPrev')).toBeDisabled();
+  await expect(page.locator('#vmSyncMarkNextLabel')).toHaveText('الآية التالية تبدأ هنا');
+
+  // «Next» moves the check on one ayah at a time, from its start.
+  await page.locator('#vmSyncNext').click();
+  await expect(focus).toHaveText('الآية ٢ من ٧');
+  await expect(page.locator('#vmSyncFTime')).toHaveValue(startTimes[1].toFixed(1));
+  await expect(page.locator('#vmSyncPlay')).toHaveText('⏸', { timeout: 10000 });          // it plays the ayah
+  await page.locator('#vmSyncPrev').click();
+  await expect(focus).toHaveText('الآية ١ من ٧');
+
+  // «The next ayah starts here»: marks the NEXT ayah where the playhead is (snapped to the
+  // pause before it), and the check moves on while the audio keeps playing.
+  await page.locator('#vmSyncFromStart').click();
+  await page.waitForTimeout(700);
+  await page.locator('#vmSyncMarkNext').click();
+  await expect(focus).toHaveText('الآية ٢ من ٧');
+  const afterMark = await times();
+  expect(afterMark[0]).toBeCloseTo(startTimes[0], 1);                       // the ayah before is untouched
+  expect(afterMark[1]).toBeGreaterThan(afterMark[0]);
+  expect(afterMark[2]).toBeGreaterThan(afterMark[1]);
+  await expect(page.locator('#vmSyncStatus')).toHaveText('عُدّل التوقيت يدوياً');
+  await page.locator('#vmSyncPlay').click();                                // pause
+
+  // Moving an ayah later than the ones after it pushes them along: one pass never gets stuck.
+  await page.locator('#vmSyncFTime').fill('12.0');
+  await page.locator('#vmSyncFTime').dispatchEvent('change');
+  const pushed = await times();
+  expect(pushed[1]).toBeCloseTo(12.0, 1);
+  for (let i = 2; i < pushed.length; i++) expect(pushed[i]).toBeGreaterThan(pushed[i - 1]);
+  expect(pushed[7]).toBeGreaterThan(pushed[6]);                             // the end moved too
+
+  // Step on to the last ayah: its button now marks the end; one more «next» reaches the end row,
+  // and «next» there says «done» and closes the sheet.
+  for (let k = 3; k <= 7; k++) await page.locator('#vmSyncNext').click();
+  await expect(focus).toHaveText('الآية ٧ من ٧');
+  await expect(page.locator('#vmSyncMarkNextLabel')).toHaveText('نهاية التلاوة هنا');
+  await page.locator('#vmSyncNext').click();
+  await expect(focus).toHaveText('نهاية التلاوة');
+  await expect(page.locator('#vmSyncMarkNext')).toBeHidden();
+  await expect(page.locator('#vmSyncNextLabel')).toHaveText('تم');
+  await page.locator('#vmSyncNext').click();
+  await expect(page.locator('#vmSyncSheet')).not.toHaveClass(/active/);
+  await expect(page.locator('#vmOwnStatus')).toHaveClass(/ok/);
 });

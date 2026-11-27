@@ -160,4 +160,24 @@ test('fewer taps than ayat: only the tapped markers come back', () => {
   assert.strictEqual(r.markers.length, 2);
 });
 
+test('snapOne: a late tap snaps to the pause before it, after the previous marker', () => {
+  const parts = [['s', 0.4], ['v', 1.5], ['s', 0.8], ['v', 2.0], ['s', 0.7], ['v', 1.2], ['s', 0.5]];
+  const { ch, starts } = build(parts);
+  const e = env(ch);
+  const r = R.snapOne(e, R.HOP, starts[1] + 0.7, starts[0]);       // tapped 0.7 s after the voice began
+  assert.strictEqual(r.snapped, true);
+  near(r.m, starts[1], 0.3, 'snapped');
+  assert.ok(r.m <= starts[1] + 0.02, 'before the voice');
+  // it never lands before the previous marker
+  const early = R.snapOne(e, R.HOP, 0.5, starts[1]);
+  assert.ok(early.m >= starts[1] + R.MIN_GAP - 1e-9, 'after the previous marker: ' + early.m);
+});
+
+test('snapOne: no pause near the tap: just before the tap', () => {
+  const { ch } = build([['s', 0.3], ['v', 6], ['s', 0.5]]);
+  const r = R.snapOne(env(ch), R.HOP, 3.0, 0.3);
+  assert.strictEqual(r.snapped, false);
+  near(r.m, 2.7, 0.05, 'fallback');
+});
+
 console.log(`\n${passed} tests passed`);
