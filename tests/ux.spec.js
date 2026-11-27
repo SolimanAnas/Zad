@@ -131,3 +131,51 @@ test('every control has a name, and nothing is wider than a 320 px phone', async
   expect(r.navLeft).toBeGreaterThanOrEqual(0);
   expect(r.navRight).toBeLessThanOrEqual(r.W);
 });
+
+// The preview stays in sight on a phone: once it scrolls away, a live copy sits in the top
+// corner; tapping it (or «معاينة») brings the preview back.
+test('mini preview while editing, and the text controls say what they are set to', async ({ page }) => {
+  await page.addInitScript(() => { if (!sessionStorage.getItem('m')) { sessionStorage.setItem('m', '1'); localStorage.setItem('zad_lang', 'ar'); localStorage.removeItem('vm_settings'); } });
+  await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  await expect(page.locator('#vmMini')).toBeHidden();
+  await expect(page.locator('#vmAyahCount')).toHaveText('٧ آيات');
+  await page.locator('#vmFont').scrollIntoViewIfNeeded();
+  await expect(page.locator('#vmMini')).toBeVisible();
+  // it is the video: not blank
+  await expect.poll(() => page.evaluate(() => {
+    const c = document.getElementById('vmMiniCanvas'), d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let s = 0; for (let i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2];
+    return s / (d.length / 4);
+  })).toBeGreaterThan(20);
+  // text size shows its value; reset brings the style back
+  await expect(page.locator('#vmFontVal')).toHaveText('١٠٠٪');
+  await page.locator('#vmFont').fill('1.3');
+  await expect(page.locator('#vmFontVal')).toHaveText('١٣٠٪');
+  await page.locator('#vmTextFx [data-fx="none"]').click();
+  await expect(page.locator('#vmHaloField')).toBeHidden();                 // nothing to colour
+  await page.locator('#vmStyleReset').click();
+  await expect(page.locator('#vmFontVal')).toHaveText('١٠٠٪');
+  await expect(page.locator('#vmTextFx [data-fx="strokeglow"]')).toHaveClass(/active/);
+  await expect(page.locator('#vmHaloField')).toBeVisible();
+  // colours are named, not hex codes
+  await expect(page.locator('#vmColors [data-color="#e6c068"]')).toHaveAttribute('aria-label', 'ذهبي');
+  // back to the preview
+  await page.locator('#vmMini').click();
+  await expect(page.locator('#vmMini')).toBeHidden({ timeout: 5000 });
+  expect(await page.evaluate(() => { const r = document.getElementById('vmStage').getBoundingClientRect(); return r.top >= -1 && r.top < innerHeight; })).toBe(true);
+  // one range count rule for Arabic: 1, 2, 3–10, 11+
+  await page.fill('#vmTo', '1'); await page.locator('#vmTo').dispatchEvent('change');
+  await expect(page.locator('#vmAyahCount')).toHaveText('آية واحدة');
+  await page.fill('#vmTo', '2'); await page.locator('#vmTo').dispatchEvent('change');
+  await expect(page.locator('#vmAyahCount')).toHaveText('آيتان');
+});
+
+test('each colour row fits on one line on a phone', async ({ page }) => {
+  await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
+  await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
+  for (const row of ['#vmColors', '#vmHalos']) {
+    const tops = await page.locator(row + ' > *').evaluateAll(els => [...new Set(els.map(e => Math.round(e.getBoundingClientRect().top)))]);
+    expect(tops.length, row).toBe(1);
+  }
+});
