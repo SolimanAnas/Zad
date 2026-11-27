@@ -165,6 +165,9 @@
       vm_sync_from_start: 'استمع من البداية',
       vm_sync_next_here: 'الآية التالية تبدأ هنا',
       vm_sync_follow: 'زامن الآيات التالية تلقائياً',
+      vm_count_1: 'آية واحدة', vm_count_2: 'آيتان', vm_count_few: '{n} آيات', vm_count_many: '{n} آية',
+      vm_back_to_preview: 'العودة إلى المعاينة', vm_style_reset: 'إعادة تنسيق النص الافتراضي',
+      vm_caption_long_note: 'إطارات الاسمين في القالب تبقى فارغة',
       vm_close: 'إغلاق',
       vm_step_up: 'زيادة واحد',
       vm_step_down: 'إنقاص واحد',
@@ -175,8 +178,8 @@
       vm_bg_my_video: 'الفيديو الخاص بك',
       vm_sync_followed: 'ضُبطت الآيات {a}–{b} تلقائياً من هذه العلامة',
       vm_sync_followed_one: 'ضُبطت الآية {a} تلقائياً من هذه العلامة',
-      vm_pingpong: 'تكرار الفيديو ذهاباً وإياباً',
-      vm_pingpong_desc: 'يعمل الفيديو للأمام ثم للخلف فلا يظهر قطع عند إعادته',
+      vm_pingpong: 'تكرار سلس للفيديو',
+      vm_pingpong_desc: 'يعمل للأمام ثم للخلف، فلا يظهر قطع عند إعادته',
       vm_sync_end_here: 'نهاية التلاوة هنا',
       vm_sync_this_start: 'بداية هذه الآية',
       vm_sync_all_ayat: 'كل الآيات',
@@ -276,6 +279,9 @@
       vm_sync_from_start: 'Listen from the start',
       vm_sync_next_here: 'Next ayah starts here',
       vm_sync_follow: 'Sync the following ayat automatically',
+      vm_count_1: '1 ayah', vm_count_2: '2 ayat', vm_count_few: '{n} ayat', vm_count_many: '{n} ayat',
+      vm_back_to_preview: 'Back to the preview', vm_style_reset: 'Reset the text style',
+      vm_caption_long_note: "The template's name frames stay empty",
       vm_close: 'Close',
       vm_step_up: 'One more',
       vm_step_down: 'One less',
@@ -286,8 +292,8 @@
       vm_bg_my_video: 'Your video',
       vm_sync_followed: 'Ayat {a}–{b} were synced from this marker',
       vm_sync_followed_one: 'Ayah {a} was synced from this marker',
-      vm_pingpong: 'Loop video forward and back',
-      vm_pingpong_desc: 'The video plays forward then backward, so there is no cut when it repeats',
+      vm_pingpong: 'Seamless video loop',
+      vm_pingpong_desc: 'Plays forward, then backward, so there is no cut when it repeats',
       vm_sync_end_here: 'Recitation ends here',
       vm_sync_this_start: 'Start of this ayah',
       vm_sync_all_ayat: 'All ayat',
@@ -1280,9 +1286,71 @@
     $('vmPreviewIcon').textContent = on ? '■' : '▶';
     $('vmPreviewLabel').textContent = tr(on ? 'vm_stop' : 'vm_preview');
     $('vmStagePlay').hidden = !!playing;
+    $('vmStage').classList.toggle('playing', !!playing);
     if (!playing) setStageProgress(0);
   }
-  function setStageProgress(p) { $('vmStageBar').style.width = (p * 100).toFixed(2) + '%'; }
+  function setStageProgress(p) {
+    const w = (p * 100).toFixed(2) + '%';
+    $('vmStageBar').style.width = w;
+    $('vmMiniBar').style.width = w;
+  }
+
+  // ---------- mini preview (phones) ----------
+  // Once the preview has scrolled away, a live copy of the video sits in the top corner, so a
+  // change to the text, the colours or the background shows at once. Tap it to go back up.
+  let stageSeen = true;
+  const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function revealStage() {
+    if (stageSeen) return;
+    $('vmStage').scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+  }
+  function setupMini() {
+    const mini = $('vmMini'), mc = $('vmMiniCanvas'), stage = $('vmStage');
+    if (!('IntersectionObserver' in window)) return;
+    const c = mc.getContext('2d');
+    let raf = 0, last = 0, on = false;
+    const wanted = () => !stageSeen && !pickSheet && $('vmResult').hidden && !stage.classList.contains('is-fs') && innerWidth < 880;
+    const fit = () => {
+      const box = canvas.width >= canvas.height ? { w: 128, h: 72 } : { w: 72, h: 128 };
+      const k = Math.min(box.w / canvas.width, box.h / canvas.height);
+      const w = Math.round(canvas.width * k), h = Math.round(canvas.height * k), dpr = Math.min(2, window.devicePixelRatio || 1);
+      if (mc.width !== Math.round(w * dpr) || mc.height !== Math.round(h * dpr)) {
+        mc.width = Math.round(w * dpr); mc.height = Math.round(h * dpr);
+        mc.style.width = w + 'px'; mc.style.height = h + 'px';
+      }
+    };
+    const draw = now => {
+      raf = requestAnimationFrame(draw);
+      if (now - last < 66) return;                 // ~15 frames a second is plenty for a thumbnail
+      last = now;
+      fit();
+      c.drawImage(canvas, 0, 0, mc.width, mc.height);
+    };
+    const sync = () => {
+      const want = wanted();
+      if (want === on) return;
+      on = want;
+      cancelAnimationFrame(raf);
+      if (on) {
+        mini.hidden = false;
+        fit();
+        c.drawImage(canvas, 0, 0, mc.width, mc.height);
+        requestAnimationFrame(() => mini.classList.add('on'));
+        raf = requestAnimationFrame(draw);
+      } else {
+        mini.classList.remove('on');
+        mini.hidden = true;
+      }
+    };
+    new IntersectionObserver(entries => {
+      stageSeen = entries[entries.length - 1].intersectionRatio > 0.2;
+      sync();
+    }, { threshold: [0, 0.2, 0.5] }).observe(stage);
+    // sheets and the result cover the page: no thumbnail on top of them
+    new MutationObserver(sync).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
+    addEventListener('resize', sync);
+    mini.onclick = () => { stageSeen = false; revealStage(); };
+  }
 
   // "Al-Baqarah · 1–7 · 9:16" under the preview.
   function updateSummary() {
@@ -1295,6 +1363,13 @@
     const durKey = (isLong() ? 'L|' : '') + durationKey();
     $('vmSummary').textContent = name + ' · ' + range + ' · ' + fmt +
       (durFor && durFor === durKey ? ' · ' + (durApprox ? '≈ ' : '') + fmtDur(durTotal) : '');
+    $('vmAyahCount').textContent = ayahCount(state.to - state.from + 1);
+  }
+  // «٧ آيات» under the range (Arabic counts take their own forms: 1, 2, 3–10, 11+).
+  function ayahCount(n) {
+    const v = arabicNames() ? arDigits(n) : String(n);
+    const key = n === 1 ? 'vm_count_1' : n === 2 ? 'vm_count_2' : n % 100 >= 3 && n % 100 <= 10 ? 'vm_count_few' : 'vm_count_many';
+    return tr(key, { n: v });
   }
 
   // Locks every control while exporting — a mid-recording change would alter the clip.
@@ -2163,8 +2238,14 @@
     $('vmTo').onchange = () => { clampRange('to'); onChange(); };
     $('vmBasmala').onchange = () => { state.basmala = $('vmBasmala').checked; onChange(); };
     $('vmReciter').onchange = () => { state.reciter = $('vmReciter').value; renderPickerButtons(); onChange(); };
-    $('vmFont').oninput = () => { state.fontMul = parseFloat($('vmFont').value); onChange(); };
-    $('vmCaption').onchange = () => { state.caption = $('vmCaption').checked; onChange(); };
+    $('vmFont').oninput = () => { state.fontMul = parseFloat($('vmFont').value); markFont(); onChange(); };
+    $('vmCaption').onchange = () => { state.caption = $('vmCaption').checked; markCaption(); onChange(); };
+    // back to the text style the page starts with (size, colours, effect)
+    $('vmStyleReset').onclick = () => {
+      Object.assign(state, { fontMul: 1, color: '#ffffff', textFx: 'strokeglow', halo: 'auto' });
+      applyStateToControls();
+      onChange();
+    };
     $('vmBranding').onchange = () => { state.branding = $('vmBranding').checked; onChange(); };
     $('vmPanel').onchange = () => { state.textPanel = $('vmPanel').checked; onChange(); };
     document.querySelectorAll('#vmTextFx button').forEach(b => {
@@ -2213,7 +2294,8 @@
     };
     document.querySelectorAll('#vmHalos .swatch').forEach(s => { s.onclick = () => setHalo(s.dataset.halo); });
     $('vmHalo').oninput = () => setHalo($('vmHalo').value);
-    $('vmPreview').onclick = togglePreview;
+    $('vmPreview').onclick = () => { if (!playing) revealStage(); togglePreview(); };
+    setupMini();
     const markTheme = () => $('vmThemeBtn').setAttribute('aria-pressed', window.ThemeManager && ThemeManager.get() === 'dark' ? 'true' : 'false');
     markTheme();
     $('vmThemeBtn').onclick = () => {
@@ -2258,6 +2340,15 @@
     });
   }
 
+  function markFont() {
+    const n = String(Math.round(state.fontMul * 100));
+    $('vmFontVal').textContent = arabicNames() ? arDigits(n) + '٪' : n + '%';
+  }
+  function markCaption() {
+    // a painted long-video template has frames for the two names: say they stay empty
+    $('vmCaptionNote').hidden = state.caption;
+  }
+
   function markHalo() {
     document.querySelectorAll('#vmHalos .swatch').forEach(s => s.classList.toggle('active', s.dataset.halo === state.halo));
     if (state.halo !== 'auto') $('vmHalo').value = state.halo;
@@ -2267,7 +2358,9 @@
 
   function applyStateToControls() {
     $('vmFont').value = state.fontMul;
+    markFont();
     $('vmCaption').checked = state.caption;
+    markCaption();
     $('vmBranding').checked = state.branding;
     $('vmPanel').checked = state.textPanel;
     document.querySelectorAll('#vmTextFx button').forEach(b => b.classList.toggle('active', b.dataset.fx === state.textFx));

@@ -208,7 +208,8 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 }
 
 /* video length, under the reciter: it follows the recitation (+ the ayat chosen) */
-.dur-row { display:flex; align-items:center; gap:8px; margin-top:10px; padding:9px 14px; border-radius:12px; background:var(--accent-muted); color:var(--text-secondary); font-size:13px; font-weight:700; }
+.dur-row { display:flex; align-items:center; gap:8px; margin-top:8px; padding:2px; color:var(--text-secondary); font-size:13px; font-weight:600; }
+.dur-row .dur-val { color:var(--text-primary); }
 .dur-row svg { width:18px; height:18px; flex:none; color:var(--accent-main); }
 .dur-label { flex:1; min-width:0; }
 .dur-val { font-size:17px; font-weight:800; color:var(--text-primary); font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate; }
@@ -322,7 +323,7 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 .stage {
   position:relative; display:flex; align-items:center; justify-content:center;
   height:min(46vh, 490px); border-radius:16px; overflow:hidden;
-  background:var(--stage-bg);
+  background:transparent;            /* the frame itself is the preview: no black box around it */
   cursor:pointer; user-select:none;
 }
 .stage canvas {
@@ -331,8 +332,8 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 }
 /* Pinned by layoutStage() to the video's bottom corner, clear of the centred ayah text. */
 .stage-play {
-  position:absolute; width:52px; height:52px; border-radius:50%;
-  border:none; background:rgba(0,0,0,.45); color:#fff; cursor:pointer;
+  position:absolute; width:48px; height:48px; border-radius:50%;
+  border:none; background:rgba(0,0,0,.32); color:#fff; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
   backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
   transition:transform .2s, opacity .2s; box-shadow:0 6px 20px rgba(0,0,0,.35);
@@ -341,9 +342,10 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 /* Full-screen toggle, pinned by layoutStage() to the video's bottom-right corner. */
 .stage-fs {
   position:absolute; width:40px; height:40px; border-radius:12px; border:none; cursor:pointer;
-  background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center;
-  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); transition:transform .15s;
+  background:rgba(0,0,0,.32); color:#fff; display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); transition:transform .15s, opacity .2s;
 }
+.stage.playing .stage-fs { opacity:.55; }   /* stays reachable, but out of the way while it plays */
 .stage-fs:active { transform:scale(.9); }
 .stage-fs svg { width:20px; height:20px; }
 .stage-fs .fs-exit { display:none; }
@@ -371,6 +373,7 @@ body.vm-pseudo-fs .action-bar { display:none; }
 .stage-badge.rec::before { content:''; width:8px; height:8px; border-radius:50%; background:var(--rec); animation:blink 1s infinite; }
 @keyframes blink { 50% { opacity:.2; } }
 .stage-progress { position:absolute; left:0; right:0; bottom:0; height:4px; background:rgba(255,255,255,.15); }
+.stage:not(.playing):not(.is-fs) .stage-progress { visibility:hidden; }   /* no empty track under an idle preview */
 .stage-progress > div { height:100%; width:0; background:var(--cta); transition:width .15s linear; }
 @media (min-width: 880px) { .stage { height:min(64vh, 640px); } }
 
@@ -415,6 +418,24 @@ body.vm-pseudo-fs .action-bar { display:none; }
   background:rgba(0,0,0,.6); color:#fff; font-size:15px; line-height:21px; text-align:center; cursor:pointer;
 }
 .bg-thumb.is-user .bg-del::after { content:''; position:absolute; inset:-8px; }   /* larger tap area */
+.bg-thumb.is-user:not(.active) .bg-del { display:none; }                          /* one mark per tile, and only on the chosen one */
+.text-btn { align-self:flex-start; min-height:44px; padding:0 4px; border:none; background:none; color:var(--accent-main);
+  font:inherit; font-size:14px; font-weight:700; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+/* Mini preview: a live copy of the video, pinned to the top corner once the preview has scrolled away
+   (phones; the wide layout keeps the whole preview pinned). Tap it to go back up. */
+.mini-preview {
+  position:fixed; top:calc(env(safe-area-inset-top, 0px) + 10px); inset-inline-end:10px; z-index:30;
+  padding:0; border:1.5px solid var(--line-strong); border-radius:12px; overflow:hidden; cursor:pointer;
+  background:#000; box-shadow:0 10px 28px rgba(0,0,0,.45);
+  opacity:0; transform:translateY(-8px) scale(.96); transition:opacity .2s, transform .2s;
+}
+.mini-preview.on { opacity:1; transform:none; }
+.mini-preview canvas { display:block; }
+.mini-bar { position:absolute; inset-inline:0; bottom:0; height:3px; background:rgba(255,255,255,.18); }
+.mini-bar span { display:block; height:100%; width:0; background:var(--accent-main); }
+@media (min-width: 880px) { .mini-preview { display:none !important; } }
+@media (prefers-reduced-motion:reduce) { .mini-preview { transition:opacity .15s; transform:none; } }
+.ayah-count { font-size:13px; font-weight:600; color:var(--text-secondary); margin:-2px 2px 2px; }
 .bg-private { font-size:11.5px; color:var(--text-secondary); margin:-2px 2px 6px; }
 
 /* Format picker with aspect-shaped icons */
@@ -607,24 +628,31 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
   font:inherit; font-size:12.5px; font-weight:700; transition:border-color .2s, color .2s;
 }
 .tpl-thumb canvas { width:100%; aspect-ratio:16 / 9; height:auto; border-radius:9px; display:block; background:#000; }
+.tpl-thumb { position:relative; }
 .tpl-thumb.active { border-color:var(--accent-main); color:var(--text-primary); background:var(--accent-muted); }
+.tpl-thumb.active::before {
+  content:'✓'; position:absolute; top:10px; inset-inline-start:10px; z-index:1; width:22px; height:22px; border-radius:50%;
+  background:var(--accent-main); color:var(--on-accent); font-size:13px; font-weight:800; line-height:22px; text-align:center;
+}
 
 /* Font size slider with small/large glyph hints */
 .range-row { display:flex; align-items:center; gap:10px; }
-.range-row .a-sm { font-size:13px; font-weight:800; color:var(--text-secondary); }
-.range-row .a-lg { font-size:20px; font-weight:800; color:var(--text-secondary); }
+.range-row .a-sm { font-size:12px; font-weight:700; color:var(--text-secondary); width:16px; text-align:center; }
+.range-row .a-lg { font-size:24px; font-weight:700; color:var(--text-secondary); width:20px; text-align:center; line-height:1; }
+.label-row { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.label-row output { font-size:13px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
 input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--accent-main); cursor:pointer; }
 
-.color-row { display:flex; gap:10px; align-items:center; flex-wrap:nowrap; overflow-x:auto; padding:5px 4px 6px; scrollbar-width:none; }
+.color-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:5px 2px 6px; }   /* wraps on the narrowest phones rather than running off the card */
 .color-row::-webkit-scrollbar { display:none; }
 .swatch {
-  position:relative; flex:none; width:34px; height:34px; border-radius:50%; border:2px solid var(--line-strong); cursor:pointer; padding:0;
+  position:relative; flex:none; width:32px; height:32px; border-radius:50%; border:2px solid var(--line-strong); cursor:pointer; padding:0;
   transition:transform .15s;
 }
 .swatch::before { content:''; position:absolute; inset:-5px; }
 .swatch:active { transform:scale(.9); }
 .swatch.active { outline:2.5px solid var(--accent-main); outline-offset:2px; }
-.custom-color { position:relative; flex:none; width:34px; height:34px; border-radius:50%; overflow:hidden;
+.custom-color { position:relative; flex:none; width:32px; height:32px; border-radius:50%; overflow:hidden;
   background:conic-gradient(red, yellow, lime, cyan, blue, magenta, red); border:2px solid var(--line-strong); }
 .custom-color input { position:absolute; inset:-8px; width:48px; height:48px; opacity:0; cursor:pointer; }
 /* "Automatic" glow/shadow colour: half dark, half light. */
@@ -722,6 +750,11 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
       </div>
     </div>
 
+    <button type="button" class="mini-preview" id="vmMini" hidden data-i18n-aria="vm_back_to_preview" aria-label="العودة إلى المعاينة" data-i18n-title="vm_back_to_preview" title="العودة إلى المعاينة">
+      <canvas id="vmMiniCanvas" width="96" height="170" aria-hidden="true"></canvas>
+      <span class="mini-bar"><span id="vmMiniBar"></span></span>
+    </button>
+
     <div class="controls-col">
       <section class="card">
         <div class="step-head">
@@ -756,6 +789,7 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
             </div>
           </div>
         </div>
+        <div class="ayah-count" id="vmAyahCount" aria-live="polite"></div>
         <label class="switch-row" id="vmBasmalaRow">
           <span class="sw-text"><span class="sw-title" data-i18n="vm_basmala">البدء بالبسملة</span></span>
           <input type="checkbox" class="switch" id="vmBasmala" checked>
@@ -882,8 +916,8 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
         </label>
         <label class="switch-row only-short">
           <span class="sw-text">
-            <span class="sw-title" data-i18n="vm_pingpong">تكرار الفيديو ذهاباً وإياباً</span>
-            <span class="sw-desc" data-i18n="vm_pingpong_desc">يعمل الفيديو للأمام ثم للخلف فلا يظهر قطع عند إعادته</span>
+            <span class="sw-title" data-i18n="vm_pingpong">تكرار سلس للفيديو</span>
+            <span class="sw-desc" data-i18n="vm_pingpong_desc">يعمل للأمام ثم للخلف، فلا يظهر قطع عند إعادته</span>
           </span>
           <input type="checkbox" class="switch" id="vmPingPong">
         </label>
@@ -901,7 +935,7 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
         </div>
 
         <div class="field">
-          <label class="label" for="vmFont" data-i18n="vm_font_size">حجم الخط</label>
+          <div class="label-row"><label class="label" for="vmFont" data-i18n="vm_font_size">حجم الخط</label><output id="vmFontVal" for="vmFont">100%</output></div>
           <div class="range-row">
             <span class="a-sm">ع</span>
             <input type="range" id="vmFont" min="0.7" max="1.4" step="0.05" value="1">
@@ -912,12 +946,12 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
         <div class="field">
           <div class="label" data-i18n="vm_text_color">لون النص</div>
           <div class="color-row" id="vmColors">
-            <button type="button" class="swatch active" data-color="#ffffff" style="background:#ffffff" aria-label="#ffffff"></button>
-            <button type="button" class="swatch" data-color="#f5e6b8" style="background:#f5e6b8" aria-label="#f5e6b8"></button>
-            <button type="button" class="swatch" data-color="#e6c068" style="background:#e6c068" aria-label="#e6c068"></button>
-            <button type="button" class="swatch" data-color="#a7f3d0" style="background:#a7f3d0" aria-label="#a7f3d0"></button>
-            <button type="button" class="swatch" data-color="#bfdbfe" style="background:#bfdbfe" aria-label="#bfdbfe"></button>
-            <span class="custom-color" title="Custom"><input type="color" id="vmColor" value="#ffffff" aria-label="Custom color"></span>
+            <button type="button" class="swatch active" data-color="#ffffff" style="background:#ffffff" aria-label="أبيض" data-i18n-aria="vm_col_white" data-i18n-title="vm_col_white" title="أبيض"></button>
+            <button type="button" class="swatch" data-color="#f5e6b8" style="background:#f5e6b8" aria-label="كريمي" data-i18n-aria="vm_col_cream" data-i18n-title="vm_col_cream" title="كريمي"></button>
+            <button type="button" class="swatch" data-color="#e6c068" style="background:#e6c068" aria-label="ذهبي" data-i18n-aria="vm_col_gold" data-i18n-title="vm_col_gold" title="ذهبي"></button>
+            <button type="button" class="swatch" data-color="#a7f3d0" style="background:#a7f3d0" aria-label="أخضر فاتح" data-i18n-aria="vm_col_mint" data-i18n-title="vm_col_mint" title="أخضر فاتح"></button>
+            <button type="button" class="swatch" data-color="#bfdbfe" style="background:#bfdbfe" aria-label="أزرق فاتح" data-i18n-aria="vm_col_sky" data-i18n-title="vm_col_sky" title="أزرق فاتح"></button>
+            <span class="custom-color" title="لون آخر" data-i18n-title="vm_col_custom"><input type="color" id="vmColor" value="#ffffff" aria-label="لون آخر" data-i18n-aria="vm_col_custom"></span>
           </div>
         </div>
 
@@ -935,13 +969,13 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
           <div class="label" data-i18n="vm_halo_color">لون التوهج والظل</div>
           <div class="color-row" id="vmHalos">
             <button type="button" class="swatch auto active" data-halo="auto" data-i18n-title="vm_halo_auto" title="تلقائي" data-i18n-aria="vm_halo_auto" aria-label="تلقائي"></button>
-            <button type="button" class="swatch" data-halo="#000000" style="background:#000000" aria-label="#000000"></button>
-            <button type="button" class="swatch" data-halo="#ffffff" style="background:#ffffff" aria-label="#ffffff"></button>
-            <button type="button" class="swatch" data-halo="#e6c068" style="background:#e6c068" aria-label="#e6c068"></button>
-            <button type="button" class="swatch" data-halo="#0b2a5b" style="background:#0b2a5b" aria-label="#0b2a5b"></button>
-            <button type="button" class="swatch" data-halo="#0b4d3a" style="background:#0b4d3a" aria-label="#0b4d3a"></button>
-            <button type="button" class="swatch" data-halo="#4a1d5c" style="background:#4a1d5c" aria-label="#4a1d5c"></button>
-            <span class="custom-color" title="Custom"><input type="color" id="vmHalo" value="#000000" aria-label="Custom glow and shadow color"></span>
+            <button type="button" class="swatch" data-halo="#000000" style="background:#000000" aria-label="أسود" data-i18n-aria="vm_col_black" data-i18n-title="vm_col_black" title="أسود"></button>
+            <button type="button" class="swatch" data-halo="#ffffff" style="background:#ffffff" aria-label="أبيض" data-i18n-aria="vm_col_white" data-i18n-title="vm_col_white" title="أبيض"></button>
+            <button type="button" class="swatch" data-halo="#e6c068" style="background:#e6c068" aria-label="ذهبي" data-i18n-aria="vm_col_gold" data-i18n-title="vm_col_gold" title="ذهبي"></button>
+            <button type="button" class="swatch" data-halo="#0b2a5b" style="background:#0b2a5b" aria-label="كحلي" data-i18n-aria="vm_col_navy" data-i18n-title="vm_col_navy" title="كحلي"></button>
+            <button type="button" class="swatch" data-halo="#0b4d3a" style="background:#0b4d3a" aria-label="أخضر داكن" data-i18n-aria="vm_col_green" data-i18n-title="vm_col_green" title="أخضر داكن"></button>
+            <button type="button" class="swatch" data-halo="#4a1d5c" style="background:#4a1d5c" aria-label="بنفسجي" data-i18n-aria="vm_col_purple" data-i18n-title="vm_col_purple" title="بنفسجي"></button>
+            <span class="custom-color" title="لون آخر" data-i18n-title="vm_col_custom"><input type="color" id="vmHalo" value="#000000" aria-label="لون آخر" data-i18n-aria="vm_col_custom"></span>
           </div>
         </div>
 
@@ -950,13 +984,14 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
           <input type="checkbox" class="switch" id="vmPanel" checked>
         </label>
         <label class="switch-row">
-          <span class="sw-text"><span class="sw-title" data-i18n="vm_caption">إظهار اسم السورة والقارئ</span></span>
+          <span class="sw-text"><span class="sw-title" data-i18n="vm_caption">إظهار اسم السورة والقارئ</span><span class="sw-desc only-long" id="vmCaptionNote" data-i18n="vm_caption_long_note" hidden>إطارات الاسمين في القالب تبقى فارغة</span></span>
           <input type="checkbox" class="switch" id="vmCaption" checked>
         </label>
         <label class="switch-row">
           <span class="sw-text"><span class="sw-title" data-i18n="vm_branding">إظهار شعار التطبيق</span></span>
           <input type="checkbox" class="switch" id="vmBranding" checked>
         </label>
+        <button type="button" class="text-btn" id="vmStyleReset" data-i18n="vm_style_reset">إعادة تنسيق النص الافتراضي</button>
       </section>
     </div>
   </div>
