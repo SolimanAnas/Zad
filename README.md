@@ -123,6 +123,7 @@ setting). Two Arabic faces with clear roles, both bundled for offline use: Cairo
 for everything you read. Sections are marked with line icons,
 surfaces are flat (no glass, no shadows). Every text/background pair is at least 4.5:1, the main controls are at
 least 44 px, focus is always visible and motion respects *reduce motion*. Every control has a name in the page's language,
+the settings are four tabs («الآيات · الصوت · المظهر · النص», one shown at a time, in any order, the bar sticky),
 on a phone a live mini copy of the video stays in the top corner once the preview scrolls away (tap it to go back up),
 and the sheets are dialogs: focus moves in, Tab stays inside, Escape closes, focus returns to the button that opened
 them. Colours come from the tokens in `:root` (one recording red, `--rec`) — `tests/ux.spec.js` keeps these from slipping.
