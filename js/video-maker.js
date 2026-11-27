@@ -165,6 +165,14 @@
       vm_sync_from_start: 'استمع من البداية',
       vm_sync_next_here: 'الآية التالية تبدأ هنا',
       vm_sync_follow: 'زامن الآيات التالية تلقائياً',
+      vm_close: 'إغلاق',
+      vm_step_up: 'زيادة واحد',
+      vm_step_down: 'إنقاص واحد',
+      vm_bg_picture_n: 'صورة {n}',
+      vm_bg_video_n: 'فيديو {n}',
+      vm_bg_gradient_n: 'تدرّج لوني {n}',
+      vm_bg_my_picture: 'صورتك',
+      vm_bg_my_video: 'الفيديو الخاص بك',
       vm_sync_followed: 'ضُبطت الآيات {a}–{b} تلقائياً من هذه العلامة',
       vm_sync_followed_one: 'ضُبطت الآية {a} تلقائياً من هذه العلامة',
       vm_pingpong: 'تكرار الفيديو ذهاباً وإياباً',
@@ -268,6 +276,14 @@
       vm_sync_from_start: 'Listen from the start',
       vm_sync_next_here: 'Next ayah starts here',
       vm_sync_follow: 'Sync the following ayat automatically',
+      vm_close: 'Close',
+      vm_step_up: 'One more',
+      vm_step_down: 'One less',
+      vm_bg_picture_n: 'Picture {n}',
+      vm_bg_video_n: 'Video {n}',
+      vm_bg_gradient_n: 'Gradient {n}',
+      vm_bg_my_picture: 'Your picture',
+      vm_bg_my_video: 'Your video',
       vm_sync_followed: 'Ayat {a}–{b} were synced from this marker',
       vm_sync_followed_one: 'Ayah {a} was synced from this marker',
       vm_pingpong: 'Loop video forward and back',
@@ -1597,6 +1613,7 @@
   function openResult() {
     $('vmSheetOverlay').hidden = false;
     $('vmResult').hidden = false;
+    focusDialog($('vmResult'));
     if (window.BackClose) BackClose.opened(closeResult);
   }
   function closeResult() {
@@ -1606,6 +1623,7 @@
     $('vmVideo').pause();
     $('vmResult').hidden = true;
     $('vmSheetOverlay').hidden = true;
+    restoreFocus();
   }
 
   // ---------- controls ----------
@@ -1682,6 +1700,38 @@
     ).join('') || '<div class="sheet-empty">' + esc(tr('takrar_no_results')) + '</div>';
   }
 
+  // ---------- dialogs (the bottom sheets and the result sheet) ----------
+  // Focus moves into a sheet when it opens (to its title, so the phone keyboard doesn't pop up),
+  // Tab stays inside it, Escape closes it, and focus goes back to what opened it.
+  let dialogOpener = null;
+  function focusDialog(sheet) {
+    const a = document.activeElement;
+    dialogOpener = a && a !== document.body && !sheet.contains(a) ? a : null;
+    const title = sheet.querySelector('.sheet-header h2, .sheet-title');
+    if (!title) return;
+    title.tabIndex = -1;
+    requestAnimationFrame(() => { if (sheet.classList.contains('active') || !sheet.hidden) title.focus({ preventScroll: true }); });
+  }
+  function restoreFocus() {
+    const o = dialogOpener;
+    dialogOpener = null;
+    if (o && document.contains(o) && !o.closest('[hidden]')) o.focus({ preventScroll: true });
+    else if (document.activeElement) document.activeElement.blur();
+  }
+  function openDialog() {
+    if (pickSheet) return $('vm' + pickSheet + 'Sheet');
+    return $('vmResult').hidden ? null : $('vmResult');
+  }
+  function trapTab(e, sheet) {
+    const items = [...sheet.querySelectorAll('button, [href], input, select, textarea, video[controls], summary, [tabindex]:not([tabindex="-1"])')]
+      .filter(el => !el.disabled && !el.closest('[hidden]') && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    const inside = sheet.contains(document.activeElement);
+    if (e.shiftKey && (!inside || document.activeElement === first || document.activeElement === sheet.querySelector('[tabindex="-1"]'))) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (!inside || document.activeElement === last)) { e.preventDefault(); first.focus(); }
+  }
+
   function openPick(kind) {
     if (pickSheet) return;
     pickSheet = kind;
@@ -1695,6 +1745,7 @@
     else renderReciterList();
     $('vmPickOverlay').classList.add('active');
     $('vm' + kind + 'Sheet').classList.add('active');
+    focusDialog($('vm' + kind + 'Sheet'));
     if (window.BackClose) BackClose.opened(closePick);
     // Long lists jump to the current choice; the popular sheet opens at the top
     // so its search box and category chips stay in view.
@@ -1787,7 +1838,7 @@
     if (window.BackClose) BackClose.closed();
     $('vmPickOverlay').classList.remove('active');
     $('vm' + pickSheet + 'Sheet').classList.remove('active', 'searching');
-    if (document.activeElement) document.activeElement.blur();
+    restoreFocus();
     const was = pickSheet;
     pickSheet = null;
     if (was === 'Sync') own.closeSync();
@@ -1854,10 +1905,13 @@
   function fillBackgrounds() {
     const strip = $('vmBgs');
     strip.innerHTML = '';
-    const add = (id, styleBg, isVideo) => {
+    let nPic = 0, nVid = 0, nGrad = 0;
+    const add = (id, styleBg, isVideo, label) => {
       const b = document.createElement('button');
       b.type = 'button';
+      b.setAttribute('aria-label', label);
       b.className = 'bg-thumb' + (isVideo ? ' is-video' : '') + (state.bg === id ? ' active' : '');
+      b.setAttribute('aria-pressed', state.bg === id ? 'true' : 'false');
       b.style.background = styleBg;
       b.style.backgroundSize = 'cover';
       b.style.backgroundPosition = 'center';
@@ -1878,7 +1932,7 @@
     // The user's own, newest first, each with a delete control.
     userBgs.forEach(f => {
       const video = isVideoFile(f);
-      add((video ? 'v:' : 'i:') + f, cssUrl(bgSrc(video ? thumbFor(f) : f)), video);
+      add((video ? 'v:' : 'i:') + f, cssUrl(bgSrc(video ? thumbFor(f) : f)), video, tr(video ? 'vm_bg_my_video' : 'vm_bg_my_picture'));
       const tile = strip.lastElementChild;
       tile.classList.add('is-user');
       const del = document.createElement('span');
@@ -1886,14 +1940,17 @@
       del.setAttribute('role', 'button');
       del.setAttribute('aria-label', tr('vm_bg_delete'));
       del.title = tr('vm_bg_delete');
+      del.tabIndex = 0;
       del.textContent = '×';
       del.onclick = e => { e.stopPropagation(); deleteUserBg(f); };
+      del.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); deleteUserBg(f); } };
       tile.appendChild(del);
     });
     const builtIn = bgImages.filter(f => !isUserBg(f));
-    builtIn.filter(isVideoFile).forEach(f => add('v:' + f, `url("${BG_DIR}${encodeURI(thumbFor(f))}")`, true));
-    builtIn.filter(f => !isVideoFile(f)).forEach(f => add('i:' + f, `url("${BG_DIR}${encodeURI(f)}")`));
-    GRADIENTS.forEach((g, i) => add('g' + i, `linear-gradient(160deg, ${g.stops.join(', ')})`));
+    const n = k => (arabicNames() ? arDigits(k) : String(k));
+    builtIn.filter(isVideoFile).forEach(f => add('v:' + f, `url("${BG_DIR}${encodeURI(thumbFor(f))}")`, true, tr('vm_bg_video_n', { n: n(++nVid) })));
+    builtIn.filter(f => !isVideoFile(f)).forEach(f => add('i:' + f, `url("${BG_DIR}${encodeURI(f)}")`, false, tr('vm_bg_picture_n', { n: n(++nPic) })));
+    GRADIENTS.forEach((g, i) => add('g' + i, `linear-gradient(160deg, ${g.stops.join(', ')})`, false, tr('vm_bg_gradient_n', { n: n(++nGrad) })));
   }
 
   // Order numbers / ✓ on the thumbnails; videos and gradients are dimmed in multi mode.
@@ -1903,6 +1960,7 @@
     document.querySelectorAll('#vmBgs .bg-thumb[data-bg]').forEach(b => {
       const n = order.indexOf(b.dataset.bg);
       b.classList.toggle('active', multi ? n >= 0 : b.dataset.bg === (isLong() ? state.tvBg : state.bg));
+      b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
       if (n >= 0) b.dataset.order = n + 1; else delete b.dataset.order;
       // Long mode takes pictures and gradients (a looping clip would undo the fast export).
       b.classList.toggle('off-in-multi', multi ? !b.dataset.bg.startsWith('i:') : isLong() && b.dataset.bg.startsWith('v:'));
@@ -2170,7 +2228,14 @@
     $('vmFullscreen').onclick = e => { e.stopPropagation(); toggleFullscreen(); };
     document.addEventListener('fullscreenchange', syncFullscreenUi);
     document.addEventListener('webkitfullscreenchange', syncFullscreenUi);
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') exitPseudoFullscreen(); });
+    document.addEventListener('keydown', e => {
+      const sheet = openDialog();
+      if (e.key === 'Escape') {
+        if (pickSheet) closePick();
+        else if (sheet) closeResult();
+        else exitPseudoFullscreen();
+      } else if (e.key === 'Tab' && sheet) trapTab(e, sheet);
+    });
     $('vmStage').onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && !busy) { e.preventDefault(); togglePreview(); } };
     $('vmResultClose').onclick = () => closeResult();
     $('vmSheetOverlay').onclick = () => closeResult();

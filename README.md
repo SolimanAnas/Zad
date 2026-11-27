@@ -122,7 +122,9 @@ header button switches to a light version that follows the same rules (a sepia v
 setting). Two Arabic faces with clear roles, both bundled for offline use: Cairo for titles, tabs and buttons, Tajawal
 for everything you read. Sections are marked with line icons,
 surfaces are flat (no glass, no shadows). Every text/background pair is at least 4.5:1, the main controls are at
-least 44 px, focus is always visible and motion respects *reduce motion* — `tests/ux.spec.js` keeps these from slipping.
+least 44 px, focus is always visible and motion respects *reduce motion*. Every control has a name in the page's language,
+and the sheets are dialogs: focus moves in, Tab stays inside, Escape closes, focus returns to the button that opened
+them. Colours come from the tokens in `:root` (one recording red, `--rec`) — `tests/ux.spec.js` keeps these from slipping.
 
 ## Project layout
 
