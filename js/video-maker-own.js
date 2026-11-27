@@ -298,7 +298,7 @@
     }
 
     // ---------- the sync sheet ----------
-    let work = null;     // { m, end, sel, dirty, win, follow }
+    let work = null;     // { m, end, sel, dirty, win, follow, fixed }
     let el = null;       // <audio> element
     let url = '';
     let raf = 0;
@@ -306,6 +306,46 @@
     const WINS = [10, 30, 120, 0];     // seconds shown; 0 = all
 
     const dur = () => (audio ? audio.buffer.duration : rec ? rec.duration : 0);
+
+    // The markers the user placed by hand. The others are guesses: when the user fixes one, the
+    // guesses after it (up to the next one placed by hand) are worked out again from it, so one
+    // missed pause in the middle doesn't mean moving every ayah after it. Splits saved before
+    // this was kept count as all placed by hand (the user's work is never moved).
+    function fixedOf(e) {
+      if (Array.isArray(e.fixed)) return new Set(e.fixed);
+      if (e.method === 'manual' || e.method === 'live') return new Set(e.m.map((_, i) => i));
+      return new Set();
+    }
+    // Splits the ayat after marker i again, up to the next fixed marker (or the end).
+    // Returns how many moved.
+    function followFrom(i) {
+      const n = work.m.length;
+      if (!audio || i >= n - 1) return 0;
+      let j = i + 1;
+      while (j < n && !work.fixed.has(j)) j++;
+      if (j === i + 1) return 0;
+      const b = j < n ? work.m[j] : work.end;
+      const segs = api.segments();
+      const weights = [];
+      for (let q = i; q < j; q++) weights.push(letters(segs[q] && segs[q].text));
+      const next = R.resplit(audio.env, R.HOP, work.m[i], b, weights);
+      let moved = 0;
+      for (let q = i + 1; q < j; q++) {
+        if (Math.abs(next[q - i] - work.m[q]) > 0.05) moved++;
+        work.m[q] = next[q - i];
+      }
+      if (moved) showFollowNote(i + 1, j);
+      return moved;
+    }
+    let noteTimer = 0;
+    function showFollowNote(from, to) {
+      const box = $('vmSyncFollowNote');
+      if (!box) return;
+      box.textContent = to - from === 1 ? tr('vm_sync_followed_one', { a: num(from + 1) }) : tr('vm_sync_followed', { a: num(from + 1), b: num(to) });
+      box.hidden = false;
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(() => { box.hidden = true; }, 4000);
+    }
 
     async function openSync() {
       if (!rec) return;
@@ -315,7 +355,7 @@
       try {
         const p = await prepare();
         const e = p.entry;
-        work = { m: e.m.slice(), end: e.end, sel: 0, playing: -1, dirty: false, win: 30, follow: true, info: e };
+        work = { m: e.m.slice(), end: e.end, sel: 0, playing: -1, dirty: false, win: 30, follow: true, info: e, fixed: fixedOf(e) };
         if (!outlineCache || outlineCache.id !== audio.id) outlineCache = { id: audio.id, bars: R.outline(audio.env, 1200) };
         const b = await audio.blob;
         url = URL.createObjectURL(b);
@@ -334,7 +374,7 @@
       if (el) { el.pause(); el.removeAttribute('src'); el.load(); el = null; }
       if (url) { URL.revokeObjectURL(url); url = ''; }
       if (work && work.dirty && rec) {
-        const e = { m: R.normalizeMarkers(work.m, work.end, MIN_STEP), end: work.end, reviewed: true, confidence: 'high', method: 'manual' };
+        const e = { m: R.normalizeMarkers(work.m, work.end, MIN_STEP), end: work.end, reviewed: true, confidence: 'high', method: 'manual', fixed: [...work.fixed].sort((a, b) => a - b) };
         store(e);
         work = null;
         renderSyncStatus();
@@ -412,6 +452,7 @@
       if (document.activeElement !== f) f.value = timeOf(k).toFixed(1);
       const mark = $('vmSyncMarkNext');
       mark.hidden = isEnd;
+      $('vmSyncFollow').hidden = k >= n - 1;
       $('vmSyncMarkNextLabel').textContent = k < n - 1 ? tr('vm_sync_next_here') : tr('vm_sync_end_here');
       $('vmSyncPrev').disabled = k === 0;
       $('vmSyncNextLabel').textContent = isEnd ? tr('vm_sync_done') : tr('vm_sync_next');
@@ -485,7 +526,9 @@
         const px = x(t), sel = i === work.sel;
         c.strokeStyle = i === work.m.length ? '#e11d48' : (sel ? '#f59e0b' : text);
         c.lineWidth = sel ? 3 : 1.5;
+        c.setLineDash(i < work.m.length && !work.fixed.has(i) ? [4, 3] : []);     // dashed = a guess
         c.beginPath(); c.moveTo(px, 14); c.lineTo(px, h); c.stroke();
+        c.setLineDash([]);
         c.fillStyle = c.strokeStyle;
         c.font = '700 11px sans-serif';
         c.textAlign = 'center';
@@ -532,6 +575,7 @@
     // are pushed along if it passes them, so going through the ayat in order never gets stuck.
     function setMarker(i, t) {
       const n = work.m.length;
+      if (i < n) work.fixed.add(i);
       const all = work.m.concat([work.end]);
       const lo = i === 0 ? 0 : all[i - 1] + MIN_STEP;
       const hi = dur() - MIN_STEP * (n - i);          // room left for the ones after it
@@ -541,12 +585,17 @@
       work.m = all.slice(0, n);
       work.end = Math.min(all[n], dur());
       work.dirty = true;
-      document.querySelectorAll('#vmSyncList .sync-row input').forEach(inp => {
-        if (document.activeElement !== inp) inp.value = all[+inp.closest('.sync-row').dataset.i].toFixed(1);
-      });
+      if (i < n) followFrom(i);
+      refreshInputs();
       syncStatusLine();
       renderFocus();
       drawWave();
+    }
+    function refreshInputs() {
+      const all = work.m.concat([work.end]);
+      document.querySelectorAll('#vmSyncList .sync-row input').forEach(inp => {
+        if (document.activeElement !== inp) inp.value = all[+inp.closest('.sync-row').dataset.i].toFixed(1);
+      });
     }
     const timeOf = i => (i === work.m.length ? work.end : work.m[i]);
 
@@ -584,7 +633,7 @@
       $('vmSyncAuto').onclick = () => {
         if (!work || !audio) return;
         const e = autoEntry(audio, api.segments());
-        work.m = e.m; work.end = e.end; work.info = e; work.dirty = e.method !== 'silence' ? true : false; work.sel = 0;
+        work.m = e.m; work.end = e.end; work.info = e; work.dirty = e.method !== 'silence' ? true : false; work.sel = 0; work.fixed = new Set();
         renderSync();
       };
       $('vmSyncText').onclick = () => {
@@ -593,7 +642,7 @@
         const one = R.autoSplit(audio.env, R.HOP, 1);
         const start = one.markers ? one.markers[0] : 0, end = one.markers ? one.end : audio.buffer.duration;
         work.m = R.normalizeMarkers(R.proportional(start, end, segs.map(s => letters(s.text))), end, MIN_STEP);
-        work.end = end; work.dirty = true; work.info = { method: 'text', confidence: 'low' }; work.sel = 0;
+        work.end = end; work.dirty = true; work.info = { method: 'text', confidence: 'low' }; work.sel = 0; work.fixed = new Set();
         renderSync();
       };
       $('vmSyncDone').onclick = () => api.closeSync();
@@ -605,6 +654,16 @@
         if (!work) return;
         if (work.sel >= work.m.length) api.closeSync();     // past the end of the recitation: done
         else goTo(work.sel + 1, true);
+      };
+      // «sync the ayat after this one»: they are all worked out again from this ayah's start,
+      // also the ones placed by hand before
+      $('vmSyncFollow').onclick = () => {
+        if (!work || work.sel >= work.m.length - 1) return;
+        for (let q = work.sel + 1; q < work.m.length; q++) work.fixed.delete(q);
+        work.fixed.add(work.sel);
+        followFrom(work.sel);
+        work.dirty = true;
+        refreshInputs(); syncStatusLine(); renderFocus(); drawWave();
       };
       $('vmSyncFMinus').onclick = () => { if (work) setMarker(work.sel, timeOf(work.sel) - 0.1); };
       $('vmSyncFPlus').onclick = () => { if (work) setMarker(work.sel, timeOf(work.sel) + 0.1); };

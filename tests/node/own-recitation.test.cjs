@@ -180,4 +180,37 @@ test('snapOne: no pause near the tap: just before the tap', () => {
   near(r.m, 2.7, 0.05, 'fallback');
 });
 
+test('resplit: after a fixed ayah the next ones follow the real pauses, not a breath', () => {
+  // ayah 4 follows ayah 3 with a pause too short to see (the auto split misses it, and takes the
+  // breath inside ayah 5 instead); the user fixes ayah 4, and the ones after it follow again
+  const parts = [['s', 0.5], ['v', 1.4], ['s', 0.8], ['v', 2.2], ['s', 0.8], ['v', 1.8], ['s', 0.1], ['v', 3.0],
+    ['s', 0.8], ['v', 1.0], ['s', 0.35], ['v', 1.4], ['s', 0.8], ['v', 1.6], ['s', 0.8], ['v', 4.0], ['s', 1.0]];
+  const { ch, starts } = build(parts);
+  const e = env(ch);
+  const auto = R.autoSplit(e, R.HOP, 7);
+  assert.ok(Math.abs(auto.markers[3] - starts[3]) > 1, 'the auto split misses ayah 4');
+  const fixed = starts[3] - 0.1;
+  const r = R.resplit(e, R.HOP, fixed, auto.end, [30, 40, 25, 60]);
+  assert.strictEqual(r.length, 4);
+  assert.strictEqual(r[0], fixed);
+  near(r[1], starts[4], 0.3, 'ayah 5');
+  near(r[2], starts[6], 0.3, 'ayah 6');        // starts[5] is the breath inside ayah 5
+  near(r[3], starts[7], 0.3, 'ayah 7');
+});
+
+test('resplit: a pause just before the fixed marker is not taken as the next boundary', () => {
+  const { ch, starts } = build([['s', 0.4], ['v', 1.5], ['s', 0.9], ['v', 2.0], ['s', 0.7], ['v', 1.2], ['s', 0.5]]);
+  const e = env(ch);
+  // the user put ayah 2 at the start of the pause before it
+  const r = R.resplit(e, R.HOP, starts[1] - 0.85, starts[2] + 1.4, [20, 15]);
+  near(r[1], starts[2], 0.3, 'ayah 3');
+});
+
+test('resplit: too few pauses: shared by text length', () => {
+  const { ch } = build([['s', 0.3], ['v', 6], ['s', 0.5]]);
+  const r = R.resplit(env(ch), R.HOP, 0.2, 6.3, [1, 1, 2]);
+  assert.strictEqual(r.length, 3);
+  near(r[1], 1.725, 0.01, 'by text'); near(r[2], 3.25, 0.01, 'by text');
+});
+
 console.log(`\n${passed} tests passed`);

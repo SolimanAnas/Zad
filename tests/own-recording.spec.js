@@ -10,8 +10,9 @@ test.use({ serviceWorkers: 'block', viewport: { width: 412, height: 915 } });
 const SR = 16000;
 const VOICE = [1.4, 2.2, 1.8, 3.0, 2.4, 1.6, 4.0];
 const GAP = 0.8, HEAD = 0.5, TAILSIL = 1.0;
-function recording(VOICE = [1.4, 2.2, 1.8, 3.0, 2.4, 1.6, 4.0]) {
-  const total = HEAD + VOICE.reduce((a, b) => a + b, 0) + GAP * (VOICE.length - 1) + TAILSIL;
+function recording(VOICE = [1.4, 2.2, 1.8, 3.0, 2.4, 1.6, 4.0], GAPS) {
+  const gapAt = i => (GAPS ? GAPS[i] : GAP);
+  const total = HEAD + VOICE.reduce((a, b) => a + b, 0) + VOICE.slice(1).reduce((a, _, i) => a + gapAt(i), 0) + TAILSIL;
   const n = Math.round(total * SR), pcm = Buffer.alloc(n * 2);
   let t = HEAD;
   const starts = [];
@@ -22,7 +23,7 @@ function recording(VOICE = [1.4, 2.2, 1.8, 3.0, 2.4, 1.6, 4.0]) {
       const env = Math.min(1, i / 400, (len - i) / 400) * (0.6 + 0.4 * Math.sin(i / 700));
       pcm.writeInt16LE(Math.round(11000 * env * Math.sin(i * 0.13)), (a + i) * 2);
     }
-    t += v + GAP;
+    t += v + (gapAt(starts.length - 1) || 0);
   }
   const buf = Buffer.alloc(44 + pcm.length);
   buf.write('RIFF', 0); buf.writeUInt32LE(36 + pcm.length, 4); buf.write('WAVEfmt ', 8); buf.writeUInt32LE(16, 16);
@@ -234,4 +235,59 @@ test('the timing sheet goes ayah by ayah to the end of the track', async ({ page
   await page.locator('#vmSyncNext').click();
   await expect(page.locator('#vmSyncSheet')).not.toHaveClass(/active/);
   await expect(page.locator('#vmOwnStatus')).toHaveClass(/ok/);
+});
+
+// One pause the auto split can't see (ayah 4 follows ayah 3 after 0.1 s) and a breath inside
+// ayah 5 that it takes instead: fixing ayah 4 by hand puts the ayat after it right again.
+const MISSED = recording([1.4, 2.2, 1.8, 3.0, 1.0, 1.4, 1.6, 4.0], [0.8, 0.8, 0.1, 0.8, 0.35, 0.8, 0.8]);
+const TRUE_STARTS = [0, 1, 2, 3, 4, 6, 7].map(i => MISSED.starts[i]);     // MISSED.starts[5] is the breath
+
+test('fixing one ayah syncs the ones after it; ayat placed by hand stay', async ({ page }) => {
+  test.setTimeout(90000);
+  await open(page);
+  await page.locator('#vmSource [data-src="own"]').click();
+  await page.setInputFiles('#vmOwnFile', { name: 'تلاوتي.wav', mimeType: 'audio/wav', buffer: MISSED.buf });
+  await expect(page.locator('#vmSyncList .sync-row')).toHaveCount(8, { timeout: 30000 });
+  const times = () => page.locator('#vmSyncList .sync-row input').evaluateAll(els => els.map(e => parseFloat(e.value)));
+  const before = await times();
+  expect(Math.abs(before[3] - TRUE_STARTS[3])).toBeGreaterThan(1);        // ayah 4 is wrong …
+  expect(Math.abs(before[4] - TRUE_STARTS[4])).toBeGreaterThan(1);        // … and so is everything after it
+
+  for (let k = 0; k < 3; k++) await page.locator('#vmSyncNext').click();
+  await page.locator('#vmSyncPlay').click();                               // pause
+  await expect(page.locator('#vmSyncFocusCount')).toHaveText('الآية ٤ من ٧');
+  await page.locator('#vmSyncFTime').fill((TRUE_STARTS[3] - 0.1).toFixed(1));
+  await page.locator('#vmSyncFTime').dispatchEvent('change');
+  const after = await times();
+  for (let i = 0; i < 3; i++) expect(after[i]).toBeCloseTo(before[i], 1);   // the ones before: untouched
+  for (let i = 4; i < 7; i++) expect(Math.abs(after[i] - TRUE_STARTS[i])).toBeLessThan(0.35);
+  await expect(page.locator('#vmSyncFollowNote')).toHaveText('ضُبطت الآيات ٥–٧ تلقائياً من هذه العلامة');
+
+  // ayah 6 placed by hand: a later change to ayah 4 leaves it where it is
+  await page.locator('#vmSyncNext').click();
+  await page.locator('#vmSyncNext').click();
+  await page.locator('#vmSyncPlay').click();
+  await page.locator('#vmSyncFTime').fill((after[5] + 0.3).toFixed(1));
+  await page.locator('#vmSyncFTime').dispatchEvent('change');
+  const hand = (await times())[5];
+  await page.locator('#vmSyncPrev').click();
+  await page.locator('#vmSyncPrev').click();
+  await page.locator('#vmSyncPlay').click();
+  await page.locator('#vmSyncFPlus').click();
+  expect((await times())[5]).toBeCloseTo(hand, 1);
+
+  // «sync the following ayat» works them all out again from here, the hand-placed one too
+  await page.locator('#vmSyncFollow').click();
+  const again = await times();
+  for (let i = 4; i < 7; i++) expect(Math.abs(again[i] - TRUE_STARTS[i])).toBeLessThan(0.35);
+
+  // the split is kept, with what was placed by hand
+  await page.locator('#vmSyncDone').click();
+  await expect(page.locator('#vmSyncSheet')).not.toHaveClass(/active/);
+  const kept = await page.evaluate(() => new Promise(res => {
+    const r = indexedDB.open('vm-own-recitation');
+    r.onsuccess = () => { const g = r.result.transaction('rec').objectStore('rec').get('meta'); g.onsuccess = () => res(Object.values(g.result.sync)[0]); };
+  }));
+  expect(kept.fixed).toEqual([3]);
+  for (let i = 4; i < 7; i++) expect(Math.abs(kept.m[i] - TRUE_STARTS[i])).toBeLessThan(0.35);
 });

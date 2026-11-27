@@ -546,6 +546,10 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .sf-mark { min-height:56px; border:none; border-radius:14px; background:var(--cta); color:var(--cta-ink); font-family:var(--font-display); font-size:17px; font-weight:700; cursor:pointer; padding:0 12px; }
 .sf-mark:active { transform:scale(.98); }
 .sf-mark[hidden] { display:none; }
+.sf-follow { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--text-primary); font-family:var(--font-display); font-size:14px; font-weight:600; cursor:pointer; }
+.sf-follow svg { width:18px; height:18px; flex:none; }
+.sf-follow[hidden], .sf-note[hidden] { display:none; }
+.sf-note { font-size:13px; font-weight:600; color:var(--accent-main); text-align:center; }
 .sf-nav { display:grid; grid-template-columns:1fr 1.25fr 1fr; gap:8px; }
 .sf-nav button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:48px; padding:0 8px; border:none; border-radius:12px; background:var(--surface-3); color:var(--text-primary); font-family:var(--font-display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .sf-nav button svg { width:18px; height:18px; flex:none; }
@@ -871,6 +875,13 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
           </span>
           <input type="checkbox" class="switch" id="vmMotion" checked>
         </label>
+        <label class="switch-row only-short">
+          <span class="sw-text">
+            <span class="sw-title" data-i18n="vm_pingpong">تكرار الفيديو ذهاباً وإياباً</span>
+            <span class="sw-desc" data-i18n="vm_pingpong_desc">يعمل الفيديو للأمام ثم للخلف فلا يظهر قطع عند إعادته</span>
+          </span>
+          <input type="checkbox" class="switch" id="vmPingPong">
+        </label>
       </section>
 
       <section class="card">
@@ -1042,6 +1053,8 @@ input[type="range"] { width:100%; accent-color:var(--accent-main); }
         </span>
       </div>
       <button type="button" class="sf-mark" id="vmSyncMarkNext"><span id="vmSyncMarkNextLabel" data-i18n="vm_sync_next_here">الآية التالية تبدأ هنا</span></button>
+      <button type="button" class="sf-follow" id="vmSyncFollow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/></svg><span data-i18n="vm_sync_follow">زامن الآيات التالية تلقائياً</span></button>
+      <div class="sf-note" id="vmSyncFollowNote" role="status" hidden></div>
       <div class="sf-nav">
         <button type="button" id="vmSyncPrev" class="sf-prev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg><span data-i18n="vm_sync_prev">السابقة</span></button>
         <button type="button" id="vmSyncFromStart" class="sf-from"><span data-i18n="vm_sync_from_start">استمع من البداية</span></button>

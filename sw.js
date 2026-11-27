@@ -6,7 +6,7 @@
 //     first time it is used.
 //   - Recitation MP3s: cache-first, filled on first use.
 // Bump VERSION whenever a cached file changes.
-const VERSION = 'qvm-v11';
+const VERSION = 'qvm-v12';
 const AUDIO = 'qvm-audio-v1';
 const CORE = [
   './', './index.html', './manifest.json',
