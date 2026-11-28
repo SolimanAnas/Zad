@@ -118,6 +118,7 @@ test('a sticker\'s place, size and effect for all of them (not their timing)', a
     kTexts: ['أ ب ج', 'د هـ و'],
     stickers: [{ id: 'h05', x: 0.2, y: 0.3, s: 0.3, fx: 'fade', line: 0 }, { id: 'h06', x: 0.8, y: 0.8, s: 0.5, fx: 'pop', line: 1 }, { id: 'h07', x: 0.5, y: 0.5, s: 0.4, fx: 'zoom', from: 2, to: 4 }],
   });
+  await expect.poll(() => page.evaluate(() => VM.history.started)).toBe(true);   // so «apply to all» is a step to undo
   await sec(page, 'look');
   await page.locator('#vmStAdded .st-chip').first().click();
   await expect(page.locator('#vmStAll')).toBeEnabled();
