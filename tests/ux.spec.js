@@ -213,8 +213,9 @@ test('section tabs: one part at a time, in any order, by touch or keyboard', asy
   await page.addInitScript(() => { if (!sessionStorage.getItem('s')) { sessionStorage.setItem('s', '1'); localStorage.setItem('zad_lang', 'ar'); localStorage.removeItem('vm_settings'); } });
   await page.goto(`${BASE_URL}/pages/video-maker.html`, { waitUntil: 'load' });
   await expect(page.locator('#vmSurahLabel')).not.toBeEmpty({ timeout: 20000 });
-  const shown = () => page.evaluate(() => [...document.querySelectorAll('.controls-col > section[data-sec]')]
-    .filter(s => s.getClientRects().length).map(s => s.dataset.sec));
+  // which parts are on screen (a part can be more than one card: «المظهر» has the background and the stickers)
+  const shown = () => page.evaluate(() => [...new Set([...document.querySelectorAll('.controls-col > section[data-sec]')]
+    .filter(s => s.getClientRects().length).map(s => s.dataset.sec))]);
   expect(await shown()).toEqual(['ayat']);
   await page.locator('#vmTab-text').click();                                  // straight to the last one
   expect(await shown()).toEqual(['text']);

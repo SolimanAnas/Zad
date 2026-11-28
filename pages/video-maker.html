@@ -3,8 +3,148 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<style>html{touch-action:manipulation}</style>  <!-- pinch-zoom on, double-tap zoom off -->
-<meta name="theme-color" content="#0E0E10">
+<style>html{touch-action:manipulation}
+/* Header: theme toggle (one icon per theme, the new one turns into place) and settings */
+.header-actions { display:flex; gap:2px; }
+.theme-btn { position:relative; overflow:hidden; }
+.theme-btn .ti { position:absolute; inset:0; margin:auto; width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+  opacity:0; transform:rotate(-120deg) scale(.4); transition:opacity .3s ease, transform .45s cubic-bezier(.34,1.56,.64,1); }
+.theme-btn[data-t="light"] .ti-light, .theme-btn[data-t="dark"] .ti-dark, .theme-btn[data-t="sepia"] .ti-sepia { opacity:1; transform:none; }
+@media (prefers-reduced-motion:reduce) { .theme-btn .ti { transition:opacity .2s; } }
+/* Settings sheet */
+.settings-label { font-size:12.5px; font-weight:800; color:var(--text-secondary); padding:6px 4px 0; }
+.settings-row { display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:10px 14px; border-radius:14px; border:1px solid var(--glass-border);
+  background:var(--list-hover); color:var(--text-primary); font:inherit; text-align:start; cursor:pointer; }
+.settings-ic { width:22px; height:22px; flex:none; fill:none; stroke:var(--accent-main); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.settings-text { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+.settings-title { font-size:14.5px; font-weight:700; }
+.settings-sub { font-size:12px; color:var(--text-secondary); }
+.settings-chevron { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; opacity:.5; }
+[dir="ltr"] .settings-chevron { transform:scaleX(-1); }
+.settings-sheet .switch-row { border:1px solid var(--glass-border); border-radius:14px; padding:10px 14px; background:var(--list-hover); }
+
+/* Section tabs: one part of the settings at a time, chosen in any order. A glass bar like
+   the rest of the page; it sticks to the top so the other parts stay one tap away. */
+.sec-tabs {
+  position:sticky; top:calc(env(safe-area-inset-top, 0px) + 6px); z-index:20;
+  display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:4px; padding:5px;
+  border-radius:18px; background:var(--bar-bg); border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+}
+.sec-tabs button {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-width:0;
+  min-height:52px; padding:5px 2px; border:none; border-radius:13px; background:none; cursor:pointer;
+  color:var(--text-secondary); font-family:inherit; font-size:13px; font-weight:700; transition:background .2s, color .2s;
+}
+.sec-tabs button span { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sec-tabs svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+.sec-tabs button[aria-selected="true"] { background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); }
+.sec-tabs button:focus-visible { outline:2px solid var(--accent-main); outline-offset:-2px; }
+.controls-col > section.sec-off { display:none !important; }
+
+/* Character stickers: the picker, the ones added, and the frame over the preview */
+.st-hint { font-size:12.5px; color:var(--text-secondary); line-height:1.6; margin-top:-4px; }
+.st-count { margin-inline-start:auto; font-size:12.5px; font-weight:800; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.st-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(76px, 1fr)); gap:8px; max-height:300px; overflow-y:auto; padding:2px; overscroll-behavior:contain; }
+.st-tile, .st-chip { display:flex; align-items:center; justify-content:center; aspect-ratio:1; min-height:44px; padding:5px; border:1.5px solid var(--glass-border); border-radius:14px;
+  background:var(--field-bg); cursor:pointer; }
+.st-add { flex-direction:column; gap:2px; border:2px dashed var(--accent-main); background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); font:inherit; font-size:12.5px; font-weight:800; }
+.st-add svg { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; }
+.st-own { position:relative; display:grid; }
+.st-own .st-tile { border-color:var(--accent-main); }
+.st-own-del { position:absolute; top:-6px; inset-inline-end:-6px; width:26px; height:26px; border-radius:50%; border:2px solid var(--field-bg); padding:0;
+  background:#dc2626; color:#fff; font-size:16px; line-height:20px; font-weight:800; cursor:pointer; }
+.st-own-del::after { content:''; position:absolute; inset:-8px; }
+.st-tile img, .st-chip img { max-width:100%; max-height:100%; object-fit:contain; pointer-events:none; }
+.st-tile:active { transform:scale(.94); }
+.st-added { display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; }
+.st-chip { flex:0 0 56px; width:56px; padding:4px; }
+.st-chip.active { border-color:var(--accent-ink, var(--accent-main)); background:var(--accent-muted); box-shadow:0 0 0 2px var(--accent-muted); }
+.st-empty { font-size:12.5px; color:var(--text-secondary); }
+.st-empty[hidden] { display:none; }
+.st-controls { display:flex; flex-direction:column; gap:6px; padding:12px; border-radius:16px; background:var(--list-hover); border:1px solid var(--glass-border); }
+.st-controls[hidden] { display:none; }
+.st-name { font-size:14px; font-weight:800; color:var(--accent-ink, var(--accent-main)); }
+.st-row { display:grid; grid-template-columns:72px 1fr; align-items:center; gap:10px; font-size:13px; font-weight:700; color:var(--text-secondary); }
+.st-actions { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; margin-top:4px; }
+.st-act { min-height:44px; padding:0 4px; border:1px solid var(--glass-border); border-radius:12px; background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.st-act.st-del { color:var(--danger); }
+.st-act.st-ok { background:var(--accent-fill, var(--accent-main)); border-color:var(--accent-ink, var(--accent-main)); color:var(--on-accent); }
+.st-times { display:flex; flex-wrap:wrap; gap:6px; }
+.st-time { display:flex; align-items:center; gap:5px; flex:1 1 130px; }
+.st-time input { width:100%; min-width:0; min-height:40px; padding:0 8px; border:1px solid var(--glass-border); border-radius:10px; background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:14px; font-variant-numeric:tabular-nums; }
+.st-now { flex:none; min-height:40px; padding:0 9px; border:1px solid var(--glass-border); border-radius:10px; background:var(--field-bg); color:var(--accent-ink, var(--accent-main)); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+.st-fx { display:flex; flex-wrap:wrap; gap:6px; }
+.st-fx button { min-height:44px; padding:0 11px; border:1px solid var(--glass-border); border-radius:999px; background:var(--field-bg); color:var(--text-secondary); font:inherit; font-size:12.5px; font-weight:800; cursor:pointer; }
+.st-fx button.active { border-color:var(--accent-ink, var(--accent-main)); background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); }
+.tpos-row { display:flex; align-items:center; gap:10px; }
+.formats.ta { grid-template-columns:repeat(3, 1fr); }
+.formats.ta button { flex-direction:row; gap:6px; }
+.formats.ta svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; }
+.tpos-row .st-hint { margin:0; flex:1; }
+.tpos-row .st-act { flex:none; padding:0 14px; }
+.tpos-row .st-act:disabled { opacity:.45; cursor:default; }
+#vmStage canvas { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
+#vmStage.text-drag canvas { cursor:grabbing; outline:2px dashed var(--accent-main); outline-offset:-2px; }
+.st-with { width:100%; min-height:40px; padding:0 8px; border:1px solid var(--glass-border); border-radius:10px; background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:13.5px; }
+.st-pack { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; min-height:40px; padding:0 14px; border:1px solid var(--glass-border); border-radius:999px; background:var(--field-bg); color:var(--accent-ink, var(--accent-main)); font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+.st-pack svg { width:18px; height:18px; }
+.st-pack:disabled { opacity:.55; cursor:progress; }
+.st-slots { display:flex; flex-direction:column; gap:8px; padding:12px; border-radius:16px; border:1.5px dashed var(--accent-main); background:var(--accent-muted); }
+.st-slots[hidden] { display:none; }
+.st-slots-title { font-size:14px; font-weight:800; color:var(--accent-ink, var(--accent-main)); }
+.st-slot-list { display:flex; flex-wrap:wrap; gap:8px; }
+.st-slot { position:relative; width:60px; height:60px; padding:4px; border:1.5px solid var(--glass-border); border-radius:14px; background:var(--field-bg); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.st-slot img { max-width:100%; max-height:100%; object-fit:contain; pointer-events:none; }
+.st-slot.empty { border-style:dashed; }
+.st-slot.active { border-color:var(--accent-ink, var(--accent-main)); box-shadow:0 0 0 3px var(--accent-muted); }
+.st-slot-n { position:absolute; top:-7px; inset-inline-start:-7px; min-width:22px; height:22px; padding:0 5px; border-radius:11px; background:var(--accent-fill, var(--accent-main)); color:var(--on-accent); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.st-slot.empty .st-slot-n { position:static; width:30px; height:30px; border-radius:50%; font-size:15px; }
+.st-slot-hint { font-size:12.5px; font-weight:700; color:var(--text-secondary); }
+.st-grid.picking .st-tile { border-color:var(--accent-ink, var(--accent-main)); }
+.st-chip-empty { font-weight:800; color:var(--accent-ink, var(--accent-main)); border-style:dashed; }
+.sc-box { display:flex; flex-direction:column; gap:8px; padding:12px; margin-bottom:10px; border-radius:16px; background:var(--list-hover); border:1px solid var(--glass-border); }
+.sc-box[hidden] { display:none; }
+.sc-head { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:800; color:var(--accent-ink, var(--accent-main)); }
+.sc-head svg { width:20px; height:20px; }
+.sc-hint { font-size:12.5px; line-height:1.6; color:var(--text-secondary); }
+.sc-actions { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; }
+.sc-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:4px 8px; border:1px solid var(--glass-border); border-radius:12px; background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:13px; font-weight:700; cursor:pointer; text-align:center; }
+.sc-btn svg { width:18px; height:18px; flex:none; }
+.sc-btn.sc-main { background:var(--accent-fill, var(--accent-main)); border-color:var(--accent-ink, var(--accent-main)); color:var(--on-accent); }
+.sc-wide { grid-column:1 / -1; }
+.sc-paste { display:flex; flex-direction:column; gap:6px; }
+.sc-paste[hidden] { display:none; }
+.sc-paste textarea { width:100%; min-height:140px; padding:10px; border:1px solid var(--glass-border); border-radius:12px; background:var(--field-bg); color:var(--text-primary); font:13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; resize:vertical; }
+.sc-warn { margin:0; padding-inline-start:18px; font-size:12.5px; line-height:1.6; color:var(--danger); }
+.sc-warn[hidden] { display:none; }
+.kt-opts { display:inline-flex; align-items:center; gap:4px; align-self:flex-start; padding:2px 4px 2px 10px; border-radius:999px; background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); font-size:12px; font-weight:800; font-variant-numeric:tabular-nums; }
+.kt-opts-x { width:28px; height:28px; border:none; border-radius:50%; background:transparent; color:inherit; font-size:16px; cursor:pointer; }
+.st-all { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; margin-top:4px; padding:6px 12px; border:1.5px dashed var(--accent-main); border-radius:12px;
+  background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); font:inherit; font-size:13px; font-weight:800; cursor:pointer; text-align:center; }
+.st-all svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:2; }
+.st-all:disabled { opacity:.45; cursor:default; }
+.st-box { position:absolute; border:2px dashed var(--accent-main); border-radius:10px; pointer-events:none; z-index:3; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+.st-box[hidden] { display:none; }
+.st-handle { position:absolute; inset-inline-end:-13px; bottom:-13px; width:26px; height:26px; border-radius:50%; background:var(--accent-fill, var(--accent-main)); border:2px solid #fff;
+  pointer-events:auto; cursor:nwse-resize; touch-action:none; }
+.st-handle::after { content:''; position:absolute; inset:-9px; }
+/* the opposite corner resizes too; × deletes the chosen sticker */
+.st-handle-top { inset-inline-end:auto; inset-inline-start:-13px; bottom:auto; top:-13px; cursor:nesw-resize; }
+.st-x { position:absolute; top:-15px; inset-inline-end:-15px; width:30px; height:30px; border-radius:50%; border:2px solid #fff; padding:0;
+  background:#dc2626; color:#fff; font-size:19px; line-height:24px; font-weight:800; cursor:pointer; pointer-events:auto; box-shadow:0 2px 8px rgba(0,0,0,.4); }
+.st-x::after { content:''; position:absolute; inset:-8px; }
+.st-pick-toggle { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:44px; padding:0 14px; border:1px solid var(--glass-border);
+  border-radius:14px; background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:14px; font-weight:800; cursor:pointer; }
+.st-pick-toggle svg { width:20px; height:20px; flex:none; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; transition:transform .2s; }
+.st-pick-toggle[aria-expanded="true"] svg { transform:rotate(180deg); }
+.st-grid[hidden] { display:none; }
+.st-until { display:flex; gap:6px; align-items:center; }
+.st-until select { flex:1; min-width:0; }
+.st-until input { width:84px; min-height:44px; padding:0 8px; border:1px solid var(--glass-border); border-radius:10px; background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:14px; }
+.st-until input[hidden] { display:none; }
+</style>  <!-- pinch-zoom on, double-tap zoom off -->
+<meta name="theme-color" content="#F8FAFC">
 <title>صانع فيديو الآيات — زاد المسلم | Quran Ayah Video Maker</title>
 <meta name="i18n-title" content="vm_meta_title">
 <link rel="manifest" href="../manifest.json">
@@ -42,6 +182,16 @@
   src: url('../fonts/Scheherazade.ttf') format('truetype');
   font-display: block;
 }
+/* «خاطرة»: bold faces for the word-by-word text, loaded only when that tab draws them (OFL;
+   fonts/extra/OFL-*.txt). The marks a face lacks are drawn as their usual equivalents (js/khatira.js). */
+@font-face { font-family:'KhAmiri'; src:url('../fonts/Amiri-Bold.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'KhScheherazade'; src:url('../fonts/ScheherazadeNew-Bold.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'KhNaskh'; src:url('../fonts/NotoNaskhArabic-Variable.ttf') format('truetype'); font-weight:400 700; font-display:block; }
+@font-face { font-family:'KhRuqaa'; src:url('../fonts/ArefRuqaa-Bold.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'KhChanga'; src:url('../fonts/Changa-Variable.ttf') format('truetype'); font-weight:200 800; font-display:block; }
+@font-face { font-family:'KhCairo'; src:url('../fonts/Cairo-Variable.ttf') format('truetype'); font-weight:200 1000; font-display:block; }
+@font-face { font-family:'KhJomhuria'; src:url('../fonts/Jomhuria-Regular.ttf') format('truetype'); font-display:block; }
+@font-face { font-family:'KhGulzar'; src:url('../fonts/Gulzar-Regular.ttf') format('truetype'); font-display:block; }
 @font-face {
   font-family: 'VMTajawal';
   src: url('../fonts/Tajawal-Bold.ttf') format('truetype');
@@ -58,6 +208,7 @@
   --paper: #F4F4F5; --surface: #FFFFFF; --surface-2: #F0F0F2; --surface-3: #E6E6E9;
   --text-primary: #18181B; --text-secondary: #5B5B63;
   --accent-main: #855A04; --accent-strong: #6E4A03; --accent-muted: rgba(133,90,4,.10); --on-accent: #FFFFFF;
+  --accent-fill: var(--accent-main); --accent-ink: var(--accent-main);   /* names the newer parts use: filled controls / accent text */
   --cta: #F2B33D; --cta-ink: #1A1203;
   --seg-on: #18181B; --seg-on-ink: #FFFFFF;
   --gold: #7E5605; --gold-soft: rgba(242,179,61,.18);
@@ -121,7 +272,7 @@ button { font-family: inherit; }
 /* Header */
 .header { position:relative; display:flex; align-items:center; gap:10px; padding:0; }
 .brand-mark { width:36px; height:36px; border-radius:10px; flex:none; }
-.header-title { font-weight:700; font-size:19px; line-height:1.3; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.header-title { font-weight:700; margin:0; font-size:19px; line-height:1.9; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .header .icon-btn { color:var(--text-secondary); }
 .theme-btn .ic-sun { display:none; }
 [data-theme="dark"] .theme-btn .ic-sun { display:block; }
@@ -185,7 +336,7 @@ select, input[type="number"] {
   background:var(--field-bg); border:1px solid transparent; border-radius:12px;
   min-height:48px; padding:11px 12px; outline:none; transition:border-color .2s, box-shadow .2s;
 }
-select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-shadow:0 0 0 3px var(--accent-muted); }
+select:focus, input[type="number"]:focus { border-color:var(--accent-ink, var(--accent-main)); box-shadow:0 0 0 3px var(--accent-muted); }
 
 /* Surah / reciter picker buttons (open the glass sheets below, like takrar.html) */
 .picker-btn {
@@ -201,9 +352,9 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 .picker-btn:disabled { opacity:.5; }
 .picker-main { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .picker-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.item-num { color:var(--accent-main); font-weight:800; margin-inline-end:6px; }
+.item-num { color:var(--accent-ink, var(--accent-main)); font-weight:800; margin-inline-end:6px; }
 .rc-style {
-  align-self:flex-start; font-size:10.5px; font-weight:700; padding:1px 8px; border-radius:8px;
+  align-self:flex-start; font-size:12px; font-weight:700; padding:1px 8px; border-radius:8px;
   background:var(--gold-soft); color:var(--gold);
 }
 
@@ -243,7 +394,7 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
   background:var(--list-hover); color:var(--text-primary); font-family:inherit;
   font-size:15px; outline:none; transition:border-color .2s; flex-shrink:0;
 }
-.sheet-search:focus { border-color:var(--accent-main); box-shadow:0 0 0 2px var(--accent-main); }
+.sheet-search:focus { border-color:var(--accent-ink, var(--accent-main)); box-shadow:0 0 0 2px var(--accent-main); }
 .sheet-header h2:focus, .sheet-title:focus { outline:none; }   /* focused on open so a screen reader reads it; not a control */
 .sheet-list { display:flex; flex-direction:column; gap:8px; }
 .sheet-item {
@@ -260,7 +411,7 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
 .rc-text { display:flex; flex-direction:column; gap:3px; min-width:0; }
 .rc-name { font-size:15px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .sheet-empty { text-align:center; color:var(--text-secondary); padding:24px; font-weight:600; }
-.sheet-group-title { font-size:13px; font-weight:800; color:var(--accent-main); margin:8px 4px 0; }
+.sheet-group-title { font-size:13px; font-weight:800; color:var(--accent-ink, var(--accent-main)); margin:8px 4px 0; }
 .sheet-group-title:first-child { margin-top:0; }
 .pop-row { flex-direction:column; align-items:stretch; gap:2px; padding:11px 14px; }
 .pop-title { font-size:15px; font-weight:800; }
@@ -294,7 +445,7 @@ select:focus, input[type="number"]:focus { border-color:var(--accent-main); box-
   font-size:22px; font-weight:700; cursor:pointer; transition:background .15s;
 }
 .stepper button:active { background:var(--accent-muted); }
-@media (max-width:360px) { .stepper button { flex-basis:38px; } }   /* room for a three-digit ayah number */
+@media (max-width:340px) { .stepper button { flex-basis:40px; } }   /* room for a three-digit ayah number */
 
 /* Switch rows (title + description + toggle) */
 .switch-row {
@@ -376,16 +527,28 @@ body.vm-pseudo-fs .action-bar { display:none; }
 .stage:not(.playing):not(.is-fs) .stage-progress { visibility:hidden; }   /* no empty track under an idle preview */
 .stage-progress > div { height:100%; width:0; background:var(--cta); transition:width .15s linear; }
 @media (min-width: 880px) { .stage { height:min(64vh, 640px); } }
+.stage-progress > div { height:100%; width:0; background:var(--accent-fill, var(--accent-main)); transition:width .15s linear; }
 
-.meta-row { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.seek { display:flex; align-items:center; gap:10px; direction:ltr; margin-top:-2px; }
+.seek input { flex:1; min-width:0; min-height:40px; accent-color:var(--accent-main); }
+.seek-t { flex:none; min-width:38px; font-size:12.5px; font-weight:800; color:var(--text-secondary); font-variant-numeric:tabular-nums; text-align:center; }
+.meta-row { display:flex; flex-wrap:nowrap; gap:8px; justify-content:center; align-items:center; }
+.meta-row .chip { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hist-btn { flex:none; width:44px; height:44px; border-radius:50%; border:1px solid var(--glass-border); background:var(--field-bg); color:var(--text-primary); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; padding:0; }
+.hist-btn svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+[dir="rtl"] .hist-btn svg { transform:scaleX(-1); }   /* back points to the right in Arabic */
+.hist-btn:disabled { opacity:.4; cursor:default; }
+.hist-btn:not(:disabled):active { transform:scale(.92); }
 .chip {
   font-size:13px; font-weight:500; padding:5px 12px; border-radius:20px;
   background:var(--surface); color:var(--text-secondary); font-variant-numeric:tabular-nums;
 }
-.status { font-size:13px; color:var(--text-secondary); min-height:1.2em; text-align:center; }
+.status { font-size:13px; color:var(--text-secondary); text-align:center; }
+.status:empty { margin-top:-12px; }   /* no blank line under the summary (it stays in the page for screen readers) */
 .status.error { color:var(--danger); font-weight:700; }
 .progress { height:6px; border-radius:6px; background:var(--accent-muted); overflow:hidden; }
-.progress > div { height:100%; width:0; background:var(--accent-main); transition:width .2s linear; }
+.progress > div { height:100%; width:0; background:var(--accent-fill, var(--accent-main)); transition:width .2s linear; }
 
 /* Background thumbnails */
 .bg-strip { display:flex; gap:10px; overflow-x:auto; padding:4px 2px 8px; scroll-snap-type:x proximity; scrollbar-width:thin; }
@@ -395,7 +558,7 @@ body.vm-pseudo-fs .action-bar { display:none; }
   scroll-snap-align:start; transition:transform .15s, border-color .15s, box-shadow .15s;
 }
 .bg-thumb:active { transform:scale(.94); }
-.bg-thumb.active { border-color:var(--accent-main); box-shadow:0 0 0 3px var(--accent-muted); }
+.bg-thumb.active { border-color:var(--accent-ink, var(--accent-main)); box-shadow:0 0 0 3px var(--accent-muted); }
 .bg-thumb.active::before {
   content:attr(data-order); position:absolute; top:4px; inset-inline-start:4px; width:18px; height:18px; border-radius:50%;
   background:var(--accent-main); color:var(--on-accent); font-size:11px; font-weight:800; line-height:18px; text-align:center;
@@ -410,12 +573,13 @@ body.vm-pseudo-fs .action-bar { display:none; }
 
 /* "+" tile and the user's own backgrounds */
 .bg-add { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-  border:2px dashed var(--accent-main); background:var(--accent-muted); color:var(--accent-main);
-  font-family:inherit; font-size:11.5px; font-weight:800; }
+  border:2px dashed var(--accent-main); background:var(--accent-muted); color:var(--accent-ink, var(--accent-main));
+  font-family:inherit; font-size:12.5px; font-weight:800; }
 .bg-add svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; }
+.bg-thumb.is-user .bg-del::after { content:''; position:absolute; inset:-8px; }   /* a finger-sized target */
 .bg-thumb.is-user .bg-del {
-  position:absolute; top:3px; inset-inline-end:3px; width:22px; height:22px; border-radius:50%;
-  background:rgba(0,0,0,.6); color:#fff; font-size:15px; line-height:21px; text-align:center; cursor:pointer;
+  position:absolute; top:3px; inset-inline-end:3px; width:28px; height:28px; border-radius:50%;
+  background:rgba(0,0,0,.6); color:#fff; font-size:17px; line-height:27px; text-align:center; cursor:pointer;
 }
 .bg-thumb.is-user .bg-del::after { content:''; position:absolute; inset:-8px; }   /* larger tap area */
 .bg-thumb.is-user:not(.active) .bg-del { display:none; }                          /* one mark per tile, and only on the chosen one */
@@ -441,22 +605,8 @@ body.vm-pseudo-fs .action-bar { display:none; }
 .sec-tabs button:focus-visible { outline-offset:-3px; }
 .controls-col > section.sec-off { display:none !important; }
 @media (min-width: 880px) { .sec-tabs { margin:0; padding:4px 0 0; border-radius:0; } }
-/* Mini preview: a live copy of the video, pinned to the top corner once the preview has scrolled away
-   (phones; the wide layout keeps the whole preview pinned). Tap it to go back up. */
-.mini-preview {
-  position:fixed; top:calc(env(safe-area-inset-top, 0px) + 70px); inset-inline-end:10px; z-index:30;
-  padding:0; border:1.5px solid var(--line-strong); border-radius:12px; overflow:hidden; cursor:pointer;
-  background:#000; box-shadow:0 10px 28px rgba(0,0,0,.45);
-  opacity:0; transform:translateY(-8px) scale(.96); transition:opacity .2s, transform .2s;
-}
-.mini-preview.on { opacity:1; transform:none; }
-.mini-preview canvas { display:block; }
-.mini-bar { position:absolute; inset-inline:0; bottom:0; height:3px; background:rgba(255,255,255,.18); }
-.mini-bar span { display:block; height:100%; width:0; background:var(--accent-main); }
-@media (min-width: 880px) { .mini-preview { display:none !important; } }
-@media (prefers-reduced-motion:reduce) { .mini-preview { transition:opacity .15s; transform:none; } }
 .ayah-count { font-size:13px; font-weight:600; color:var(--text-secondary); margin:-2px 2px 2px; }
-.bg-private { font-size:11.5px; color:var(--text-secondary); margin:-2px 2px 6px; }
+.bg-private { font-size:12.5px; color:var(--text-secondary); margin:-2px 2px 6px; }
 
 /* Format picker with aspect-shaped icons */
 .formats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
@@ -466,12 +616,12 @@ body.vm-pseudo-fs .action-bar { display:none; }
   background:var(--field-bg); color:var(--text-secondary); font-size:13px; font-weight:600;
   transition:border-color .2s, color .2s, background .2s;
 }
-.formats button.active { border-color:var(--accent-main); color:var(--accent-main); background:var(--accent-muted); }
+.formats button.active { border-color:var(--accent-ink, var(--accent-main)); color:var(--accent-ink, var(--accent-main)); background:var(--accent-muted); }
 .formats .shape { border:2px solid currentColor; border-radius:4px; }
 .formats [data-fmt="story"] .shape { width:16px; height:28px; }
 .formats [data-fmt="square"] .shape { width:24px; height:24px; }
 .formats [data-fmt="wide"] .shape { width:30px; height:17px; margin-block:5px; }
-.formats small { font-weight:500; opacity:.75; direction:ltr; }
+.formats small { font-size:12px; font-weight:600; opacity:.8; direction:ltr; }
 .formats.fx { grid-template-columns:repeat(2, 1fr); }
 .formats.fx button { flex-direction:row; justify-content:center; padding:11px 6px; }
 
@@ -480,7 +630,7 @@ body.vm-pseudo-fs .action-bar { display:none; }
 body.mode-long .only-short, body:not(.mode-long) .only-long { display:none !important; }
 body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .mode-tabs {
-  display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:14px;
+  display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:4px; padding:4px; border-radius:14px;
   background:var(--surface);
 }
 .mode-tabs button {
@@ -491,6 +641,45 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 }
 .mode-tabs button span { overflow:hidden; text-overflow:ellipsis; }
 .mode-tabs button svg { width:18px; height:18px; flex-shrink:0; }
+/* «خاطرة»: the word-by-word tab (Shorts controls, plus its own font picker and notes) */
+body.mode-khatira .not-khatira, body:not(.mode-khatira) .only-khatira { display:none !important; }
+/* «خاطرة» with your own words: the Quran controls step aside for the text fields */
+body.kh-text .not-ktext:not(.kq-show), body.kh-text:not(.kt-quran) .not-ktext.kq-show, body:not(.kh-text) .only-ktext { display:none !important; }
+body.kh-text.kh-own .kt-silent { display:none !important; }
+/* own words over a recitation («آيات»): the surah, range and reciter show (in «الصوت») */
+body:not(.kt-quran) .only-kq, body.kt-quran .kt-silent, body.kt-quran #vmReciterBox .kh-note { display:none !important; }
+.kq-box { display:flex; flex-direction:column; gap:12px; margin-top:12px; }
+.kt-box { display:flex; flex-direction:column; gap:10px; }
+.kt-list { display:flex; flex-direction:column; gap:10px; }
+.kt-row { display:flex; flex-direction:column; gap:4px; position:relative; }
+.kt-row .kt-label { font-size:12.5px; font-weight:800; color:var(--text-secondary); }
+.kt-row textarea { width:100%; min-height:64px; resize:vertical; padding:10px 40px 10px 12px; border-radius:12px; border:1px solid var(--glass-border);
+  background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:16px; line-height:1.6; }
+[dir="rtl"] .kt-row textarea { padding:10px 12px 10px 40px; }
+.kt-row textarea:focus { outline:none; border-color:var(--accent-ink, var(--accent-main)); box-shadow:0 0 0 2px var(--accent-muted); }
+.kt-row .kt-del { position:absolute; top:24px; inset-inline-end:2px; width:44px; height:44px; border:none; border-radius:10px; background:transparent;
+  color:var(--text-secondary); font-size:20px; cursor:pointer; }
+.kt-row .kt-del:hover { background:var(--accent-muted); color:var(--danger); }
+.kt-add { display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; border:2px dashed var(--accent-main); border-radius:12px;
+  background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); font:inherit; font-size:14.5px; font-weight:800; cursor:pointer; }
+.kt-add svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; }
+.kt-add:disabled { opacity:.45; cursor:default; }
+.kh-note { display:flex; gap:8px; align-items:flex-start; font-size:12.5px; color:var(--text-secondary); line-height:1.6; margin-top:8px; }
+.kh-note svg { width:16px; height:16px; flex-shrink:0; margin-top:3px; }
+.kfonts { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:8px; }
+.kfonts button { position:relative; }
+.kfonts .kf-del { position:absolute; top:4px; inset-inline-end:4px; width:24px; height:24px; border-radius:50%; background:rgba(0,0,0,.55); color:#fff;
+  font-size:16px; line-height:23px; text-align:center; cursor:pointer; }
+.kfonts .kf-del::after { content:''; position:absolute; inset:-8px; }
+.kfonts .kf-add { border:2px dashed var(--accent-main); background:var(--accent-muted); color:var(--accent-ink, var(--accent-main)); }
+.kfonts .kf-add svg { width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; }
+.kfonts .kf-add span { font-size:12px; font-weight:800; text-align:center; }
+.kfonts button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:76px; padding:6px 6px 8px;
+  border:1.5px solid var(--glass-border); border-radius:14px; background:var(--field-bg); color:var(--text-primary); font:inherit; cursor:pointer; }
+.kfonts button.active { border-color:var(--accent-ink, var(--accent-main)); background:var(--accent-muted); }
+.kfonts .kf-sample { font-size:28px; line-height:1.5; direction:rtl; white-space:nowrap; }
+.kfonts .kf-name { font-size:12px; font-weight:700; color:var(--text-secondary); }
+.kfonts button.active .kf-name { color:var(--accent-ink, var(--accent-main)); }
 .mode-tabs button.active { background:var(--seg-on); color:var(--seg-on-ink); }
 .mode-tabs button:disabled { cursor:default; opacity:.6; }
 .long-hint { display:flex; gap:8px; align-items:flex-start; font-size:12px; color:var(--text-secondary); line-height:1.6; margin-top:2px; }
@@ -501,7 +690,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
   background:var(--field-bg); border:1px solid transparent; border-radius:12px;
   min-height:48px; padding:11px 12px; outline:none; transition:border-color .2s, box-shadow .2s;
 }
-.text-input:focus { border-color:var(--accent-main); box-shadow:0 0 0 3px var(--accent-muted); }
+.text-input:focus { border-color:var(--accent-ink, var(--accent-main)); box-shadow:0 0 0 3px var(--accent-muted); }
 .own-pick {
   width:100%; display:flex; align-items:center; justify-content:center; gap:10px; min-height:50px; cursor:pointer;
   padding:10px 14px; border-radius:12px; border:1.5px dashed var(--line-strong);
@@ -519,7 +708,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .own-status { font-size:12.5px; font-weight:700; margin:8px 2px 0; min-height:1em; }
 .own-status.ok { color:var(--accent-main); }
 .own-status.warn { color:var(--warn); }
-.own-private { font-size:11.5px; color:var(--text-secondary); margin:4px 2px 2px; }
+.own-private { font-size:12.5px; color:var(--text-secondary); margin:4px 2px 2px; }
 #vmOwnBox, #vmReciterBox { margin-top:2px; }
 /* Record / upload buttons side by side */
 .own-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
@@ -529,7 +718,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .fx-box { margin-top:10px; border-radius:14px; background:var(--field-bg); padding:12px; display:flex; flex-direction:column; gap:8px; }
 .fx-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .fx-title { display:flex; align-items:center; gap:8px; font-weight:800; font-size:14.5px; }
-.fx-title svg { width:18px; height:18px; color:var(--accent-main); }
+.fx-title svg { width:18px; height:18px; color:var(--accent-ink, var(--accent-main)); }
 .fx-body { display:flex; flex-direction:column; gap:10px; transition:opacity .2s; }
 .fx-body.off { opacity:.45; }
 .fx-group { display:flex; flex-direction:column; gap:6px; padding-top:10px; border-top:1px solid var(--line); }
@@ -547,11 +736,11 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .rec-sheet { max-width:620px; height:calc(var(--vvh, 100dvh) - 24px); max-height:none; }
 .rec-sheet .sheet-content { gap:12px; }
 .rec-top { display:flex; align-items:center; justify-content:space-between; font-weight:800; }
-.rec-count { color:var(--accent-main); font-size:15px; }
+.rec-count { color:var(--accent-ink, var(--accent-main)); font-size:15px; }
 .rec-time { font-variant-numeric:tabular-nums; font-size:15px; color:var(--text-secondary); }
 .rec-dots { display:flex; gap:4px; flex-wrap:wrap; }
 .rec-dots i { flex:1 1 6px; max-width:24px; height:5px; border-radius:3px; background:var(--glass-border); }
-.rec-dots i.done { background:var(--accent-main); }
+.rec-dots i.done { background:var(--accent-fill, var(--accent-main)); }
 .rec-dots i.cur { background:var(--rec); }
 .rec-prompt { position:relative; flex:1; min-height:200px; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:18px 16px; border-radius:20px;
   background:var(--field-bg); border:1.5px solid var(--glass-border); cursor:default; overflow-y:auto; user-select:none; transition:border-color .2s; }
@@ -562,7 +751,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .rec-next { font-size:clamp(18px, 4.6vw, 26px); line-height:1.9; text-align:center; color:var(--text-secondary); opacity:.6; border-top:1px dashed var(--glass-border); padding-top:10px; }
 .rec-countdown { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:96px; font-weight:900; color:var(--rec); background:color-mix(in srgb, var(--field-bg) 82%, transparent); border-radius:20px; }
 .rec-meter { height:8px; border-radius:6px; background:var(--glass-border); overflow:hidden; flex-shrink:0; }
-.rec-meter span { display:block; height:100%; width:0; background:var(--accent-main); transition:width .06s linear; }
+.rec-meter span { display:block; height:100%; width:0; background:var(--accent-fill, var(--accent-main)); transition:width .06s linear; }
 .rec-meter span.hot { background:var(--rec); }
 .rec-status { min-height:1.2em; font-size:13px; font-weight:700; color:var(--text-secondary); text-align:center; }
 .rec-status.warn { color:var(--warn); }
@@ -570,7 +759,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .rec-side, .rec-main { display:flex; align-items:center; justify-content:center; gap:8px; min-height:58px; padding:0 8px; border-radius:18px; font:inherit; font-size:clamp(14px, 3.9vw, 16px); font-weight:800; white-space:nowrap; cursor:pointer; border:1px solid var(--glass-border); background:var(--field-bg); color:var(--text-primary); }
 .rec-side svg { width:20px; height:20px; }
 .rec-side:disabled, .rec-main:disabled { opacity:.4; cursor:default; }
-.rec-next-btn:not(:disabled) { background:var(--accent-main); border-color:var(--accent-main); color:var(--on-accent); }
+.rec-next-btn:not(:disabled) { background:var(--accent-fill, var(--accent-main)); border-color:var(--accent-ink, var(--accent-main)); color:var(--on-accent); }
 .rec-main { background:var(--rec); border-color:var(--rec); color:var(--on-rec); }
 .rec-main .rec-dot { width:14px; height:14px; border-radius:50%; background:#fff; }
 .rec-main.on .rec-dot { border-radius:3px; animation:recPulse 1s ease-in-out infinite; }
@@ -581,7 +770,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 /* Sync sheet: the guided pass (one ayah, then the next, to the end of the track) */
 .sync-focus { display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:16px; background:var(--surface-2); }
 .sf-top { display:flex; align-items:center; justify-content:space-between; }
-.sf-count { font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--accent-main); }
+.sf-count { font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--accent-ink, var(--accent-main)); }
 .sf-ayah { font-family:'QuranFont','QuranFallback',serif; font-size:24px; line-height:1.9; text-align:center; color:var(--text-primary);
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:0; }
 .sf-ayah:empty { display:none; }
@@ -593,7 +782,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .sf-follow { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:transparent; color:var(--text-primary); font-family:var(--font-display); font-size:14px; font-weight:600; cursor:pointer; }
 .sf-follow svg { width:18px; height:18px; flex:none; }
 .sf-follow[hidden], .sf-note[hidden] { display:none; }
-.sf-note { font-size:13px; font-weight:600; color:var(--accent-main); text-align:center; }
+.sf-note { font-size:13px; font-weight:600; color:var(--accent-ink, var(--accent-main)); text-align:center; }
 .sf-nav { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,1fr); gap:8px; }
 .sf-nav button { display:flex; align-items:center; justify-content:center; gap:6px; min-height:48px; padding:0 8px; border:none; border-radius:12px; background:var(--surface-3); color:var(--text-primary); font-family:var(--font-display); font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .sf-nav button svg { width:18px; height:18px; flex:none; }
@@ -608,13 +797,40 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .sync-all > summary::after { content:''; width:8px; height:8px; margin-inline-start:10px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg) translateY(-2px); }
 .sync-all[open] > summary::after { transform:rotate(225deg); }
 .sync-all .sync-list { margin-top:6px; }
-.sync-row.playing .sr-num::after { content:'♪'; margin-inline-start:4px; color:var(--accent-main); }
+.sync-row.playing .sr-num::after { content:'♪'; margin-inline-start:4px; color:var(--accent-ink, var(--accent-main)); }
 .sf-start .sr-ctl input[type="number"] { width:70px; }
 /* Sync sheet */
 .sync-sheet { max-width:560px; }
 .sync-hint { font-size:12.5px; color:var(--text-secondary); line-height:1.6; }
 .sync-status { font-size:13px; font-weight:800; color:var(--accent-main); }
-.sync-status.warn { color:var(--warn); }
+.sync-status.warn { color:var(--sync-warn); }
+/* Uncertain boundaries: one amber for them everywhere in the sheet (list, waveform, focus) */
+.sync-sheet { --sync-warn:#b45309; }
+[data-theme="dark"] .sync-sheet { --sync-warn:#f59e0b; }
+[data-theme="sepia"] .sync-sheet { --sync-warn:#9a4a0b; }
+.sync-review { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 8px 8px 12px; border-radius:12px;
+  background:color-mix(in srgb, var(--sync-warn) 12%, transparent); color:var(--sync-warn); font-size:13.5px; font-weight:700; }
+[dir="rtl"] .sync-review { padding:8px 12px 8px 8px; }
+.sync-review[hidden] { display:none; }
+.sync-review-btn { flex:none; min-height:40px; padding:0 14px; border:none; border-radius:10px; background:var(--sync-warn); color:#fff; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; }
+.sync-tools { display:flex; gap:4px; }
+.sync-tool { width:40px; height:40px; display:flex; align-items:center; justify-content:center; border:1px solid var(--glass-border); border-radius:10px;
+  background:var(--field-bg); color:var(--text-primary); font:inherit; font-size:13px; font-weight:800; cursor:pointer; padding:0; }
+.sync-tool svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.sync-tool:disabled { opacity:.35; cursor:default; }
+.sync-speed { width:auto; min-width:44px; padding:0 8px; font-variant-numeric:tabular-nums; }
+.sync-speed.slow { background:var(--accent-muted); border-color:var(--accent-ink, var(--accent-main)); color:var(--accent-ink, var(--accent-main)); }
+.sf-unsure { display:inline-flex; align-items:center; gap:4px; color:var(--sync-warn); font-size:12.5px; font-weight:800; }
+.sf-unsure[hidden] { display:none; }
+.sf-unsure svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.sf-check { display:flex; gap:8px; }
+.sf-check button { flex:1; display:flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:0 10px; border-radius:12px; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; }
+.sf-check button[hidden] { display:none; }
+.sf-check svg { width:18px; height:18px; flex:none; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.sf-join { border:1px solid var(--glass-border); background:transparent; color:var(--text-primary); }
+.sf-confirm { border:1px solid var(--sync-warn); background:color-mix(in srgb, var(--sync-warn) 12%, transparent); color:var(--sync-warn); }
+.sync-row.unsure .sr-num { color:var(--sync-warn); }
+.sync-row.unsure .sr-num::before { content:'⚠'; margin-inline-end:3px; font-size:11px; }
 .sync-wave { width:100%; height:96px; border-radius:14px; background:var(--field-bg); border:1px solid var(--glass-border); touch-action:none; cursor:pointer; flex-shrink:0; }
 .sync-bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .sync-play { width:48px; height:48px; border-radius:50%; border:none; background:var(--accent-main); color:var(--on-accent); font-size:16px; cursor:pointer; flex:none; }
@@ -625,9 +841,9 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 .sync-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .sync-list { gap:6px; }
 .sync-row { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:14px; background:var(--list-hover); border:1.5px solid transparent; flex-wrap:wrap; }
-.sync-row.sel { border-color:var(--accent-main); background:var(--accent-muted); }
+.sync-row.sel { border-color:var(--accent-ink, var(--accent-main)); background:var(--accent-muted); }
 .sync-row.end .sr-text { color:var(--danger); }
-.sr-num { min-width:2.2em; text-align:center; font-weight:800; color:var(--accent-main); font-size:15px; }
+.sr-num { min-width:2.2em; text-align:center; font-weight:800; color:var(--accent-ink, var(--accent-main)); font-size:15px; }
 .sr-text { flex:1; min-width:6em; font-size:15px; font-family:'QuranFont','QuranFallback',serif; line-height:1.9; }
 .sr-ctl { display:flex; align-items:center; gap:4px; margin-inline-start:auto; direction:ltr; }
 .sr-ctl button { width:42px; height:42px; border-radius:10px; border:1px solid var(--glass-border); background:var(--field-bg); color:var(--text-primary); font-size:15px; font-weight:800; cursor:pointer; padding:0; }
@@ -657,6 +873,7 @@ body.mode-long .stage:not(.is-fs) { height:auto; aspect-ratio:16 / 9; }
 
 /* Font size slider with small/large glyph hints */
 .range-row { display:flex; align-items:center; gap:10px; }
+.range-row .gap-ic { width:20px; height:20px; flex:none; fill:none; stroke:var(--text-secondary); stroke-width:2.2; stroke-linecap:round; }
 .range-row .a-sm { font-size:12px; font-weight:700; color:var(--text-secondary); width:16px; text-align:center; }
 .range-row .a-lg { font-size:24px; font-weight:700; color:var(--text-secondary); width:20px; text-align:center; line-height:1; }
 .label-row { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
@@ -666,13 +883,13 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
 .color-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:5px 2px 6px; }   /* wraps on the narrowest phones rather than running off the card */
 .color-row::-webkit-scrollbar { display:none; }
 .swatch {
-  position:relative; flex:none; width:32px; height:32px; border-radius:50%; border:2px solid var(--line-strong); cursor:pointer; padding:0;
+  position:relative; flex:none; width:40px; height:40px; border-radius:50%; border:2px solid var(--line-strong); cursor:pointer; padding:0;
   transition:transform .15s;
 }
 .swatch::before { content:''; position:absolute; inset:-5px; }
 .swatch:active { transform:scale(.9); }
 .swatch.active { outline:2.5px solid var(--accent-main); outline-offset:2px; }
-.custom-color { position:relative; flex:none; width:32px; height:32px; border-radius:50%; overflow:hidden;
+.custom-color { position:relative; flex:none; width:40px; height:40px; border-radius:50%; overflow:hidden;
   background:conic-gradient(red, yellow, lime, cyan, blue, magenta, red); border:2px solid var(--line-strong); }
 .custom-color input { position:absolute; inset:-8px; width:48px; height:48px; opacity:0; cursor:pointer; }
 /* "Automatic" glow/shadow colour: half dark, half light. */
@@ -681,6 +898,27 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
   font:800 12px/1 system-ui, sans-serif; color:#888; }
 
 /* Fixed action bar */
+.mini-prev { position:fixed; z-index:19; inset-inline-start:12px; bottom:calc(env(safe-area-inset-bottom) + 92px); border-radius:14px; box-shadow:0 10px 28px rgba(0,0,0,.45), 0 0 0 1px var(--glass-border); background:#000; animation:miniIn .22s ease-out; }
+.mini-prev[hidden] { display:none; }
+@keyframes miniIn { from { opacity:0; transform:translateY(12px) scale(.94); } }
+.mini-view { display:block; padding:0; border:none; background:none; cursor:pointer; border-radius:14px; overflow:hidden; }
+.mini-view canvas { display:block; width:100%; height:100%; }
+.mini-btn { position:absolute; width:34px; height:34px; border:none; border-radius:50%; background:rgba(0,0,0,.6); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:20px; line-height:1; }
+.mini-btn::after { content:''; position:absolute; inset:-8px; }
+.mini-btn svg { width:16px; height:16px; }
+.mini-play { bottom:6px; inset-inline-start:6px; }
+.mini-play .i-stop, .mini-prev.playing .mini-play .i-play { display:none; }
+.mini-prev.playing .mini-play .i-stop { display:block; }
+.mini-close { top:-10px; inset-inline-end:-10px; width:28px; height:28px; background:var(--field-bg); color:var(--text-primary); box-shadow:0 2px 8px rgba(0,0,0,.35); border:1px solid var(--glass-border); }
+body.vm-pseudo-fs .mini-prev { display:none; }
+/* shrunk (×): only a round button that opens it again */
+.mini-open { display:none; width:52px; height:52px; border-radius:50%; border:2px solid #fff; padding:0; cursor:pointer;
+  background:var(--accent-fill, var(--accent-main)); color:var(--on-accent); align-items:center; justify-content:center; }
+.mini-open svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round; }
+.mini-prev.min { background:transparent; box-shadow:none; border-radius:50%; }
+.mini-prev.min .mini-view, .mini-prev.min .mini-btn { display:none; }
+.mini-prev.min .mini-open { display:flex; box-shadow:0 6px 18px rgba(0,0,0,.4); }
+@media (prefers-reduced-motion: reduce) { .mini-prev { animation:none; } }
 .action-bar {
   position:fixed; left:0; right:0; bottom:0; z-index:20; display:flex; justify-content:center;
   padding:10px 16px calc(env(safe-area-inset-bottom) + 10px);
@@ -726,61 +964,73 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
 <div class="app">
   <div class="header">
     <img class="brand-mark" src="../icons/icon-192.png" alt="" width="40" height="40">
-    <div class="header-title" data-i18n="vm_title">صانع فيديو الآيات</div>
+    <h1 class="header-title" data-i18n="vm_title_short">فيديو الآيات</h1>
     <button class="icon-btn theme-btn" id="vmThemeBtn" type="button" data-i18n-title="vm_theme" title="الوضع الليلي" data-i18n-aria="vm_theme" aria-label="الوضع الليلي">
       <svg class="ic-moon" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
       <svg class="ic-sun" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
     </button>
-    <button class="icon-btn" onclick="openLanguage()" title="اللغة" data-i18n-title="nav_language" aria-label="Language">
-      <svg class="action-icon" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    <button class="icon-btn" id="vmSettingsBtn" type="button" aria-haspopup="dialog" aria-label="الإعدادات" title="الإعدادات" data-i18n-aria="settings" data-i18n-title="settings">
+      <svg class="action-icon" viewBox="0 0 24 24" style="width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
 
   <div class="mode-tabs" id="vmModeTabs" role="tablist">
     <button type="button" role="tab" data-mode="short" class="active" aria-selected="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
-      <span data-i18n="vm_mode_short">مقاطع قصيرة / ريلز</span>
+      <span data-i18n="vm_mode_short">قصير / ريلز</span>
     </button>
     <button type="button" role="tab" data-mode="long" aria-selected="false">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg>
       <span data-i18n="vm_mode_long">فيديو طويل</span>
+    </button>
+    <button type="button" role="tab" data-mode="khatira" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h6"/><path d="M17 15l2 2 3-4"/></svg>
+      <span data-i18n="vm_mode_khatira">خاطرة</span>
     </button>
   </div>
 
   <div class="layout">
     <div class="preview-col">
       <div class="card">
-        <div class="stage" id="vmStage" role="button" tabindex="0" data-i18n-aria="vm_preview" aria-label="معاينة">
+        <div class="stage" id="vmStage">
           <canvas id="vmCanvas" width="1080" height="1920"></canvas>
-          <div class="stage-play" id="vmStagePlay" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
-          </div>
+          <button type="button" class="stage-play" id="vmStagePlay" data-i18n-aria="vm_preview" aria-label="معاينة" data-i18n-title="vm_preview" title="معاينة">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+          </button>
           <button type="button" class="stage-fs" id="vmFullscreen" data-i18n-title="vm_fullscreen" title="ملء الشاشة" data-i18n-aria="vm_fullscreen" aria-label="ملء الشاشة">
             <svg class="fs-enter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
             <svg class="fs-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
           </button>
+          <div class="st-box" id="vmStickerBox" hidden>
+            <span class="st-handle" id="vmStHandle" aria-hidden="true"></span>
+            <span class="st-handle st-handle-top" id="vmStHandle2" aria-hidden="true"></span>
+            <button type="button" class="st-x" id="vmStBoxDel" data-i18n-aria="vm_st_delete" aria-label="حذف" data-i18n-title="vm_st_delete" title="حذف">×</button>
+          </div>
           <div class="stage-badge" id="vmBadge" hidden></div>
           <div class="stage-progress"><div id="vmStageBar"></div></div>
         </div>
+        <div class="seek" id="vmSeekRow">
+          <span class="seek-t" id="vmSeekNow" dir="ltr">0:00</span>
+          <input type="range" id="vmSeek" min="0" max="1000" step="1" value="0" dir="ltr" data-i18n-aria="vm_seek" aria-label="موضع المعاينة">
+          <span class="seek-t" id="vmSeekTotal" dir="ltr">–:––</span>
+        </div>
         <div class="meta-row">
+          <button type="button" class="hist-btn" id="vmUndo" disabled data-i18n-aria="vm_undo" aria-label="تراجع" data-i18n-title="vm_undo" title="تراجع"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
           <span class="chip" id="vmSummary"></span>
+          <button type="button" class="hist-btn" id="vmRedo" disabled data-i18n-aria="vm_redo" aria-label="إعادة" data-i18n-title="vm_redo" title="إعادة"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
         </div>
         <div class="progress" id="vmProgress" hidden><div id="vmProgressBar"></div></div>
         <div class="status" id="vmStatus" aria-live="polite"></div>
       </div>
     </div>
 
-    <button type="button" class="mini-preview" id="vmMini" hidden data-i18n-aria="vm_back_to_preview" aria-label="العودة إلى المعاينة" data-i18n-title="vm_back_to_preview" title="العودة إلى المعاينة">
-      <canvas id="vmMiniCanvas" width="96" height="170" aria-hidden="true"></canvas>
-      <span class="mini-bar"><span id="vmMiniBar"></span></span>
-    </button>
 
     <div class="controls-col">
       <!-- Sections as tabs: one at a time, in any order, the create bar always there. -->
       <div class="sec-tabs" id="vmSecTabs" role="tablist" aria-label="أقسام الإعدادات" data-i18n-aria="vm_sections">
         <button type="button" role="tab" id="vmTab-ayat" data-sec="ayat" aria-selected="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5c2.6-1.4 5.4-1.4 8 0V19c-2.6-1.4-5.4-1.4-8 0zM21 5.5c-2.6-1.4-5.4-1.4-8 0V19c2.6-1.4 5.4-1.4 8 0z"/></svg>
-          <span data-i18n="vm_step_ayat">الآيات</span>
+          <span class="not-khatira" data-i18n="vm_step_ayat">الآيات</span><span class="only-khatira" data-i18n="vm_sec_content">المحتوى</span>
         </button>
         <button type="button" role="tab" id="vmTab-audio" data-sec="audio" aria-selected="false" tabindex="-1">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
@@ -797,20 +1047,50 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
       </div>
       <section data-sec="ayat" role="tabpanel" aria-labelledby="vmTab-ayat" class="card">
         <div class="step-head">
-          <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5.5c2.6-1.4 5.4-1.4 8 0V19c-2.6-1.4-5.4-1.4-8 0zM21 5.5c-2.6-1.4-5.4-1.4-8 0V19c2.6-1.4 5.4-1.4 8 0z"/></svg></span><span class="step-title" data-i18n="vm_step_ayat">الآيات</span>
-          <button type="button" class="search-btn" id="vmSearchBtn" aria-haspopup="dialog" data-i18n-title="vm_search" data-i18n-aria="vm_search" title="بحث في القرآن" aria-label="بحث في القرآن"><img src="../img/SVG/search.svg" alt="" style="width:18px;height:18px;"></button>
-          <button type="button" class="popular-btn" id="vmPopularBtn" aria-haspopup="dialog">
+          <span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 5.5c2.6-1.4 5.4-1.4 8 0V19c-2.6-1.4-5.4-1.4-8 0zM21 5.5c-2.6-1.4-5.4-1.4-8 0V19c2.6-1.4 5.4-1.4 8 0z"/></svg></span><span class="step-title not-khatira" data-i18n="vm_step_ayat">الآيات</span><span class="step-title only-khatira" data-i18n="vm_sec_content">المحتوى</span>
+          <button type="button" class="search-btn not-ktext" id="vmSearchBtn" aria-haspopup="dialog" data-i18n-title="vm_search" data-i18n-aria="vm_search" title="بحث في القرآن" aria-label="بحث في القرآن"><img src="../img/SVG/search.svg" alt="" style="width:18px;height:18px;"></button>
+          <button type="button" class="popular-btn not-ktext" id="vmPopularBtn" aria-haspopup="dialog">
             <svg class="spark" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c.6 6.6 5.4 11.4 12 12-6.6.6-11.4 5.4-12 12-.6-6.6-5.4-11.4-12-12C6.6 11.4 11.4 6.6 12 0z"/></svg><span data-i18n="vm_popular">الأكثر استخداماً</span>
           </button>
         </div>
-        <div class="field">
+        <!-- «خاطرة»: your own words, or ayat -->
+        <div class="formats fx only-khatira" id="vmKContent" role="group">
+          <button type="button" data-kc="text" class="active" aria-pressed="true" data-i18n="vm_kc_text">نص من كتابتك</button>
+          <button type="button" data-kc="quran" aria-pressed="false" data-i18n="vm_kc_quran">آيات من القرآن</button>
+        </div>
+        <div class="kt-box only-ktext">
+          <div class="sc-box" id="vmScBox">
+            <div class="sc-head"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span data-i18n="vm_sc_title">سيناريو الفيديو</span></div>
+            <div class="sc-hint" data-i18n="vm_sc_hint">الفيديو كاملاً في ملف نصي: السطور وتوقيتها وخطوطها وأحجامها وملصقاتها. نزّل القالب وأعطه لمساعد ذكاء اصطناعي مع موضوعك، ثم ارفع ما يكتبه.</div>
+            <div class="sc-actions">
+              <button type="button" class="sc-btn sc-main" id="vmScUpload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg><span data-i18n="vm_sc_upload">رفع سيناريو</span></button>
+              <button type="button" class="sc-btn" id="vmScPasteBtn" aria-expanded="false" aria-controls="vmScPaste"><span data-i18n="vm_sc_paste">لصق سيناريو</span></button>
+              <button type="button" class="sc-btn" id="vmScTemplate"><span data-i18n="vm_sc_template">تحميل القالب</span></button>
+              <button type="button" class="sc-btn" id="vmScCopy"><span data-i18n="vm_sc_copy">نسخ القالب للذكاء الاصطناعي</span></button>
+              <button type="button" class="sc-btn sc-wide" id="vmScExport"><span data-i18n="vm_sc_export">تنزيل سيناريو الفيديو الحالي</span></button>
+            </div>
+            <input type="file" id="vmScFile" accept=".txt,.srt,.vtt,text/plain" hidden>
+            <div class="sc-paste" id="vmScPaste" hidden>
+              <textarea id="vmScText" rows="7" dir="auto" data-i18n-placeholder="vm_sc_paste_ph" placeholder="[0:00 - 0:04] نص السطر الأول &lt;sticker 1&gt;" data-i18n-aria="vm_sc_paste" aria-label="لصق سيناريو"></textarea>
+              <div class="sc-actions">
+                <button type="button" class="sc-btn sc-main" id="vmScApply" data-i18n="vm_sc_apply">استيراد</button>
+                <button type="button" class="sc-btn" id="vmScCancel" data-i18n="vm_sc_cancel">إلغاء</button>
+              </div>
+            </div>
+            <ul class="sc-warn" id="vmScWarn" hidden></ul>
+          </div>
+          <div class="kt-list" id="vmKTexts"></div>
+          <button type="button" class="kt-add" id="vmKTextAdd"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="vm_kt_add">أضف نصاً</span></button>
+          <div class="kh-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg><span data-i18n="vm_kt_note">كل نص يظهر كلمة كلمة. مع تسجيلك يُضبط كل نص على مقطعه من الصوت، وبدون صوت يظهر بقدر طوله.</span></div>
+        </div>
+        <div class="field not-ktext kq-show" id="vmSurahField">
           <span class="label" data-i18n="vm_surah">السورة</span>
           <button type="button" class="picker-btn" id="vmSurahBtn" aria-haspopup="dialog">
             <span class="picker-main"><span class="picker-name" id="vmSurahLabel"></span></span>
           </button>
           <select id="vmSurah" hidden aria-hidden="true" tabindex="-1"></select>
         </div>
-        <div class="row">
+        <div class="row not-ktext kq-show" id="vmRangeRow">
           <div class="field">
             <label class="label" for="vmFrom" data-i18n="vm_from">من آية</label>
             <div class="stepper">
@@ -828,8 +1108,8 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
             </div>
           </div>
         </div>
-        <div class="ayah-count" id="vmAyahCount" aria-live="polite"></div>
-        <label class="switch-row" id="vmBasmalaRow">
+        <div class="ayah-count not-ktext" id="vmAyahCount" aria-live="polite"></div>
+        <label class="switch-row not-ktext" id="vmBasmalaRow">
           <span class="sw-text"><span class="sw-title" data-i18n="vm_basmala">البدء بالبسملة</span></span>
           <input type="checkbox" class="switch" id="vmBasmala" checked>
         </label>
@@ -840,16 +1120,23 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
       </section>
 
       <section data-sec="audio" role="tabpanel" aria-labelledby="vmTab-audio" class="card">
-        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span class="step-title" data-i18n="vm_reciter">القارئ</span></div>
+        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span><span class="step-title not-ktext" data-i18n="vm_reciter">القارئ</span><span class="step-title only-ktext" data-i18n="vm_sec_audio">الصوت</span></div>
         <div class="formats fx" id="vmSource">
-          <button type="button" data-src="reciter" class="active" data-i18n="vm_src_reciter">قارئ من القائمة</button>
+          <button type="button" data-src="reciter" class="active"><span class="not-ktext" data-i18n="vm_src_reciter">قارئ من القائمة</span><span class="only-ktext" data-i18n="vm_src_none">بدون صوت</span></button>
+          <button type="button" data-src="quran" class="only-ktext" data-i18n="vm_src_quran">آيات</button>
           <button type="button" data-src="own" data-i18n="vm_src_own">تسجيلي الخاص</button>
         </div>
-        <div id="vmReciterBox">
+        <!-- own words over a recitation: the surah and ayat (moved here from «المحتوى») and the reciter -->
+        <div class="kq-box only-kq" id="vmKqBox">
+          <div class="kh-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg><span data-i18n="vm_kq_note">تُتلى الآيات التي تختارها تحت نصوصك، وتتوزع النصوص على مدة التلاوة ما لم يحدد السيناريو توقيتها.</span></div>
+        </div>
+        <div class="kh-note only-ktext kt-silent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="vm_kt_silent">بدون صوت: يظهر كل نص بقدر طوله. لتضبطه على صوتك اختر «تسجيلي الخاص» وارفع ملفاً أو سجّل.</span></div>
+        <div id="vmReciterBox" class="not-ktext kq-show">
           <button type="button" class="picker-btn" id="vmReciterBtn" aria-haspopup="dialog">
             <span class="picker-main" id="vmReciterLabel"></span>
           </button>
           <select id="vmReciter" hidden aria-hidden="true" tabindex="-1"></select>
+          <div class="kh-note only-khatira"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="vm_kh_reciters">قرّاء معهم توقيت لكل كلمة، فتظهر الكلمة حين تُتلى.</span></div>
         </div>
         <div id="vmOwnBox" hidden>
           <input type="file" id="vmOwnFile" accept="audio/*,video/mp4,video/webm,.mp3,.m4a,.aac,.wav,.ogg,.opus,.flac,.weba" hidden>
@@ -917,9 +1204,10 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
             </div>
           </div>
           <div class="own-private" data-i18n="vm_own_private">تسجيلك يبقى على جهازك ولا يُرفع إلى أي مكان.</div>
+          <div class="kh-note only-khatira"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></svg><span data-i18n="vm_kh_own_note">في تسجيلك تُوزَّع الكلمات على زمن كل آية بحسب طولها، فتوقيتها تقريبي.</span></div>
         </div>
         <div class="field">
-          <label class="label" for="vmSheikh" data-i18n="vm_sheikh_name">اسم القارئ المعروض</label>
+          <label class="label" for="vmSheikh"><span class="not-ktext" data-i18n="vm_sheikh_name">اسم القارئ المعروض</span><span class="only-ktext" data-i18n="vm_kt_name">الاسم المعروض</span></label>
           <input type="text" id="vmSheikh" class="text-input" maxlength="60" autocomplete="off" dir="auto">
         </div>
         <div class="dur-row" id="vmDuration" aria-live="polite">
@@ -962,6 +1250,68 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
         </label>
       </section>
 
+      <section data-sec="look" role="tabpanel" aria-labelledby="vmTab-look" class="card only-short" id="vmStickerCard">
+        <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21c.8-4 3.6-6 7-6s6.2 2 7 6"/><path d="M17 3.5l1 1.6 1.8.3-1.3 1.3.3 1.8-1.8-.9" /></svg></span><span class="step-title" data-i18n="vm_st_title">ملصقات</span><span class="st-count" id="vmStCount" dir="ltr"></span></div>
+        <div class="st-hint" data-i18n="vm_st_hint">اضغط ملصقاً ليُضاف إلى الفيديو، ثم حرّكه على المعاينة أو بالمنزلقات.</div>
+        <button type="button" class="st-pack" id="vmStPack"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span data-i18n="vm_st_pack">تحميل حزمة الملصقات</span></button>
+        <div class="st-slots" id="vmStSlots" hidden>
+          <div class="st-slots-title" data-i18n="vm_st_slots">ملصقات السيناريو</div>
+          <div class="st-slot-list" id="vmStSlotList" role="group" data-i18n-aria="vm_st_slots" aria-label="ملصقات السيناريو"></div>
+          <div class="st-slot-hint" id="vmStSlotHint" aria-live="polite"></div>
+        </div>
+        <button type="button" class="st-pick-toggle" id="vmStPickToggle" aria-expanded="true" aria-controls="vmStGrid"><span data-i18n="vm_st_pick">اختر ملصقاً</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="st-grid" id="vmStGrid" role="group" data-i18n-aria="vm_st_title" aria-label="ملصقات"></div>
+        <input type="file" id="vmStOwnFile" accept="image/png,image/webp,image/jpeg,image/gif,image/avif,image/svg+xml" multiple hidden>
+        <div class="field">
+          <div class="label" data-i18n="vm_st_added">المضافة</div>
+          <div class="st-added" id="vmStAdded" role="group"></div>
+          <div class="st-empty" id="vmStEmpty" data-i18n="vm_st_empty">لم تُضف ملصقات بعد</div>
+        </div>
+        <div class="st-controls" id="vmStControls" hidden>
+          <div class="st-name" id="vmStName"></div>
+          <label class="st-row"><span data-i18n="vm_st_size">الحجم</span><input type="range" id="vmStSize" min="0.08" max="1.3" step="0.01"></label>
+          <label class="st-row"><span data-i18n="vm_st_x">أفقياً</span><input type="range" id="vmStX" min="0" max="1" step="0.005" dir="ltr"></label>
+          <label class="st-row"><span data-i18n="vm_st_y">رأسياً</span><input type="range" id="vmStY" min="0" max="1" step="0.005"></label>
+          <label class="st-row" id="vmStWithRow"><span data-i18n="vm_st_when">الظهور</span>
+            <select id="vmStWith" class="st-with"></select>
+          </label>
+          <div class="st-row" id="vmStUntilRow" hidden><label for="vmStUntil" data-i18n="vm_st_until">حتى</label>
+            <div class="st-until">
+              <select id="vmStUntil" class="st-with">
+                <option value="line" data-i18n="vm_st_until_line">نهاية هذا النص</option>
+                <option value="next" data-i18n="vm_st_until_next">ظهور الملصق التالي</option>
+                <option value="end" data-i18n="vm_st_until_end">نهاية الفيديو</option>
+                <option value="time" data-i18n="vm_st_until_time">ثانية محددة</option>
+              </select>
+              <input type="number" id="vmStUntilAt" min="0" step="0.1" inputmode="decimal" dir="ltr" data-i18n-aria="vm_st_until_time" aria-label="ثانية محددة" hidden>
+            </div>
+          </div>
+          <div class="st-row" id="vmStTimes"><span></span>
+            <div class="st-times">
+              <label class="st-time"><span data-i18n="vm_st_from">من</span><input type="number" id="vmStFrom" min="0" step="0.1" inputmode="decimal" placeholder="0" dir="ltr"><button type="button" class="st-now" id="vmStFromNow" data-i18n="vm_st_now" data-i18n-title="vm_st_now_aria" title="وقت المعاينة الحالي">الآن</button></label>
+              <label class="st-time"><span data-i18n="vm_st_to">إلى</span><input type="number" id="vmStTo" min="0" step="0.1" inputmode="decimal" data-i18n-placeholder="vm_st_end" placeholder="النهاية" dir="ltr"><button type="button" class="st-now" id="vmStToNow" data-i18n="vm_st_now" data-i18n-title="vm_st_now_aria" title="وقت المعاينة الحالي">الآن</button></label>
+            </div>
+          </div>
+          <div class="st-row"><span data-i18n="vm_st_fx">التأثير</span>
+            <div class="st-fx" id="vmStFx" role="group" data-i18n-aria="vm_st_fx" aria-label="التأثير">
+              <button type="button" data-fx="pop" aria-pressed="true" class="active" data-i18n="vm_st_fx_pop">قفزة</button>
+              <button type="button" data-fx="fade" aria-pressed="false" data-i18n="vm_st_fx_fade">تلاشٍ</button>
+              <button type="button" data-fx="slide" aria-pressed="false" data-i18n="vm_st_fx_slide">انزلاق</button>
+              <button type="button" data-fx="zoom" aria-pressed="false" data-i18n="vm_st_fx_zoom">تكبير</button>
+              <button type="button" data-fx="float" aria-pressed="false" data-i18n="vm_st_fx_float">طفو</button>
+              <button type="button" data-fx="none" aria-pressed="false" data-i18n="vm_st_fx_none">بدون</button>
+            </div>
+          </div>
+          <button type="button" class="st-all" id="vmStAll"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span data-i18n="vm_st_all">تطبيق المكان والحجم والتأثير على كل الملصقات</span></button>
+          <div class="st-actions">
+            <button type="button" id="vmStFlip" class="st-act" data-i18n="vm_st_flip">قلب</button>
+            <button type="button" id="vmStFront" class="st-act" data-i18n="vm_st_front">للأمام</button>
+            <button type="button" id="vmStDel" class="st-act st-del" data-i18n="vm_st_delete">حذف</button>
+            <button type="button" id="vmStDone" class="st-act st-ok" data-i18n="vm_st_done">تم</button>
+          </div>
+        </div>
+      </section>
+
       <section data-sec="text" role="tabpanel" aria-labelledby="vmTab-text" class="card">
         <div class="step-head"><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 7V5h14v2M9.5 19h5M12 5v14"/></svg></span><span class="step-title" data-i18n="vm_step_style">التنسيق</span></div>
         <div class="field only-short">
@@ -973,12 +1323,31 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
           </div>
         </div>
 
+        <div class="field only-short">
+          <div class="label" data-i18n="vm_tpos">موضع النص</div>
+          <div class="formats ta" id="vmTextAlign" role="group" data-i18n-aria="vm_tpos" aria-label="موضع النص">
+            <button type="button" data-ta="top" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14M8 9h8M8 13h8"/></svg><span data-i18n="vm_ta_top">أعلى</span></button>
+            <button type="button" data-ta="middle" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 10h8M8 14h8"/><path d="M5 4h14M5 20h14" opacity=".45"/></svg><span data-i18n="vm_ta_middle">الوسط</span></button>
+            <button type="button" data-ta="bottom" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11h8M8 15h8M5 20h14"/></svg><span data-i18n="vm_ta_bottom">أسفل</span></button>
+          </div>
+          <span class="st-hint" data-i18n="vm_tpos_hint">اضغط مطولاً على المعاينة ثم اسحب لتحريك النص.</span>
+        </div>
+
         <div class="field">
           <div class="label-row"><label class="label" for="vmFont" data-i18n="vm_font_size">حجم الخط</label><output id="vmFontVal" for="vmFont">100%</output></div>
           <div class="range-row">
             <span class="a-sm">ع</span>
             <input type="range" id="vmFont" min="0.7" max="1.4" step="0.05" value="1">
             <span class="a-lg">ع</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="label" for="vmLineGap" data-i18n="vm_line_gap">تباعد الأسطر</label>
+          <div class="range-row">
+            <svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9h14M5 12h14M5 15h14"/></svg>
+            <input type="range" id="vmLineGap" min="1.1" max="2.4" step="0.05" value="1.5">
+            <svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14M5 12h14M5 19h14"/></svg>
           </div>
         </div>
 
@@ -992,6 +1361,22 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
             <button type="button" class="swatch" data-color="#bfdbfe" style="background:#bfdbfe" aria-label="أزرق فاتح" data-i18n-aria="vm_col_sky" data-i18n-title="vm_col_sky" title="أزرق فاتح"></button>
             <span class="custom-color" title="لون آخر" data-i18n-title="vm_col_custom"><input type="color" id="vmColor" value="#ffffff" aria-label="لون آخر" data-i18n-aria="vm_col_custom"></span>
           </div>
+        </div>
+
+        <div class="field only-khatira">
+          <div class="label" data-i18n="vm_ks_label">طريقة ظهور النص</div>
+          <div class="formats fx" id="vmKStyle" role="group">
+            <button type="button" data-ks="line" class="active" aria-pressed="true" data-i18n="vm_ks_line">السطر كاملاً</button>
+            <button type="button" data-ks="build" aria-pressed="false" data-i18n="vm_ks_build">تظهر الكلمات مع التلاوة</button>
+            <button type="button" data-ks="word" aria-pressed="false" data-i18n="vm_ks_word">كلمة كلمة</button>
+          </div>
+        </div>
+
+        <div class="field only-khatira">
+          <div class="label" data-i18n="vm_kh_font">خط الكلمات</div>
+          <div class="kfonts" id="vmKFonts" role="group"></div>
+          <input type="file" id="vmKFontFile" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden>
+          <div class="bg-private" data-i18n="vm_kf_private">الخطوط التي تضيفها تبقى على جهازك ولا تُرفع إلى أي مكان.</div>
         </div>
 
         <div class="field">
@@ -1018,7 +1403,7 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
           </div>
         </div>
 
-        <label class="switch-row only-short">
+        <label class="switch-row only-short not-khatira">
           <span class="sw-text"><span class="sw-title" data-i18n="vm_text_panel">لوحة شفافة خلف الآيات</span></span>
           <input type="checkbox" class="switch" id="vmPanel" checked>
         </label>
@@ -1034,6 +1419,14 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
       </section>
     </div>
   </div>
+</div>
+
+<!-- a small live copy of the preview, while the preview itself is scrolled out of view -->
+<div class="mini-prev" id="vmMini" hidden>
+  <button type="button" class="mini-view" id="vmMiniView" data-i18n-aria="vm_mini_back" aria-label="العودة إلى المعاينة"><canvas id="vmMiniCanvas" aria-hidden="true"></canvas></button>
+  <button type="button" class="mini-btn mini-play" id="vmMiniPlay" data-i18n-aria="vm_preview" aria-label="معاينة"><svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg><svg class="i-stop" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+  <button type="button" class="mini-btn mini-close" id="vmMiniClose" data-i18n-aria="vm_mini_close" aria-label="تصغير المعاينة">×</button>
+  <button type="button" class="mini-open" id="vmMiniOpen" data-i18n-aria="vm_mini_open" aria-label="إظهار المعاينة المصغّرة" data-i18n-title="vm_mini_open" title="إظهار المعاينة المصغّرة"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg></button>
 </div>
 
 <div class="action-bar">
@@ -1105,13 +1498,22 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
 </div>
 <div class="bottom-sheet sync-sheet" id="vmSyncSheet" role="dialog" aria-modal="true" aria-labelledby="vmSyncSheetTitle">
   <div class="drag-handle"></div>
-  <div class="sheet-header"><h2 id="vmSyncSheetTitle" data-i18n="vm_sync_title">ضبط توقيت الآيات</h2><button class="icon-btn" type="button" data-close-pick aria-label="إغلاق" data-i18n-aria="vm_close" data-i18n-title="vm_close" title="إغلاق"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
+  <div class="sheet-header"><h2 id="vmSyncSheetTitle" data-i18n="vm_sync_title">ضبط توقيت الصوت</h2><button class="icon-btn" type="button" data-close-pick aria-label="إغلاق" data-i18n-aria="vm_close" data-i18n-title="vm_close" title="إغلاق"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
   <div class="sheet-content">
     <div class="sync-status" id="vmSyncStatus" aria-live="polite"></div>
+    <div class="sync-review" id="vmSyncReview" hidden>
+      <span class="sync-review-text" id="vmSyncReviewText"></span>
+      <button type="button" class="sync-review-btn" id="vmSyncReviewBtn" data-i18n="vm_sync_review">راجع التالي</button>
+    </div>
     <canvas id="vmSyncWave" class="sync-wave" aria-hidden="true"></canvas>
     <div class="sync-bar">
       <button type="button" class="sync-play" id="vmSyncPlay" aria-label="Play">▶</button>
       <span class="sync-time" id="vmSyncTime" dir="ltr">0:00.0 / 0:00</span>
+      <span class="sync-tools">
+        <button type="button" class="sync-tool" id="vmSyncUndo" disabled aria-label="تراجع" title="تراجع" data-i18n-aria="vm_sync_undo" data-i18n-title="vm_sync_undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+        <button type="button" class="sync-tool" id="vmSyncRedo" disabled aria-label="إعادة" title="إعادة" data-i18n-aria="vm_sync_redo" data-i18n-title="vm_sync_redo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+        <button type="button" class="sync-tool sync-speed" id="vmSyncSpeed" aria-label="سرعة التشغيل" title="سرعة التشغيل" data-i18n-aria="vm_sync_speed" data-i18n-title="vm_sync_speed" dir="ltr">1×</button>
+      </span>
       <span class="sync-zoom" id="vmSyncZoom" role="group">
         <button type="button" data-win="10">10s</button>
         <button type="button" data-win="30" class="active">30s</button>
@@ -1120,7 +1522,7 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
       </span>
     </div>
     <div class="sync-focus" id="vmSyncFocus">
-      <div class="sf-top"><span class="sf-count" id="vmSyncFocusCount"></span></div>
+      <div class="sf-top"><span class="sf-count" id="vmSyncFocusCount"></span><span class="sf-unsure" id="vmSyncUnsure" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg><span data-i18n="vm_sync_unsure_chip">غير مؤكد</span></span></div>
       <div class="sf-ayah" id="vmSyncFocusText" dir="rtl"></div>
       <div class="sf-start">
         <span class="sf-start-label" id="vmSyncFocusLabel"></span>
@@ -1130,6 +1532,10 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
           <button type="button" id="vmSyncFPlus" aria-label="+0.1">+</button>
           <button type="button" id="vmSyncFHere" data-i18n-title="vm_sync_set_here" title="ضع العلامة عند موضع التشغيل" data-i18n-aria="vm_sync_set_here" aria-label="ضع العلامة عند موضع التشغيل">⌖</button>
         </span>
+      </div>
+      <div class="sf-check">
+        <button type="button" class="sf-join" id="vmSyncJoin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/></svg><span data-i18n="vm_sync_listen_join">استمع للفاصل</span></button>
+        <button type="button" class="sf-confirm" id="vmSyncConfirm" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span data-i18n="vm_sync_confirm">الفاصل صحيح</span></button>
       </div>
       <button type="button" class="sf-mark" id="vmSyncMarkNext"><span id="vmSyncMarkNextLabel" data-i18n="vm_sync_next_here">الآية التالية تبدأ هنا</span></button>
       <button type="button" class="sf-follow" id="vmSyncFollow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v4h-4"/></svg><span data-i18n="vm_sync_follow">زامن الآيات التالية تلقائياً</span></button>
@@ -1150,6 +1556,41 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
       <div class="sheet-list sync-list" id="vmSyncList"></div>
     </details>
     <button type="button" class="btn primary sync-done" id="vmSyncDone" data-i18n="vm_sync_done">تم</button>
+  </div>
+</div>
+<div class="bottom-sheet settings-sheet" id="vmSettingsSheet" role="dialog" aria-modal="true" aria-labelledby="vmSettingsSheetTitle">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header"><h2 id="vmSettingsSheetTitle" data-i18n="settings">الإعدادات</h2><button class="icon-btn" type="button" data-close-pick aria-label="إغلاق" data-i18n-aria="vm_close" data-i18n-title="vm_close" title="إغلاق"><img src="../img/SVG/close.svg" class="close-icon" style="width:1em;height:1em;" alt=""></button></div>
+  <div class="sheet-content">
+    <div class="settings-label" data-i18n="nav_language">اللغة</div>
+    <button type="button" class="settings-row" id="vmLangRow">
+      <svg class="settings-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span class="settings-text"><span class="settings-title" dir="auto">اللغة (Language)</span><span class="settings-sub" id="vmLangSub">العربية</span></span>
+      <svg class="settings-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <div class="settings-label" data-i18n="vm_project">المشروع</div>
+    <button type="button" class="settings-row" id="vmFileNew">
+      <svg class="settings-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9 14h6"/></svg>
+      <span class="settings-text"><span class="settings-title" data-i18n="vm_file_new">جديد</span><span class="settings-sub" data-i18n="vm_file_new_sub">بداية جديدة: النصوص والملصقات والتنسيق من أوله (يمكن التراجع)</span></span>
+    </button>
+    <button type="button" class="settings-row" id="vmFileOpen">
+      <svg class="settings-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-8l-2-3H4a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1z"/><path d="M12 17v-6M9 14l3-3 3 3"/></svg>
+      <span class="settings-text"><span class="settings-title" data-i18n="vm_file_open">فتح مشروع</span><span class="settings-sub" data-i18n="vm_file_open_sub">من ملف حفظته من قبل، على هذا الجهاز أو غيره</span></span>
+    </button>
+    <button type="button" class="settings-row" id="vmFileSave">
+      <svg class="settings-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8V3M7 21v-7h10v7"/></svg>
+      <span class="settings-text"><span class="settings-title" data-i18n="vm_file_save">حفظ المشروع</span><span class="settings-sub" data-i18n="vm_file_save_sub">ملف صغير فيه الفيديو كله لتكمله لاحقاً أو على جهاز آخر</span></span>
+    </button>
+    <input type="file" id="vmFileInput" accept=".zadvideo,.json,application/json" hidden>
+    <div class="bg-private" data-i18n="vm_file_note">ما أضفته من جهازك (خلفيات، تسجيلات، خطوط) يبقى عليه ولا يدخل في الملف.</div>
+    <div class="settings-label" data-i18n="vm_settings_video">الفيديو</div>
+      <label class="switch-row">
+        <span class="sw-text">
+          <span class="sw-title" data-i18n="vm_mini_setting">معاينة مصغّرة عائمة</span>
+          <span class="sw-desc" data-i18n="vm_mini_setting_desc">نسخة صغيرة من الفيديو تظهر حين تنزل إلى الإعدادات، لترى كل تغيير مباشرة</span>
+        </span>
+        <input type="checkbox" class="switch" id="vmMiniToggle">
+      </label>
   </div>
 </div>
 <div class="bottom-sheet" id="vmReciterSheet" role="dialog" aria-modal="true" aria-labelledby="vmReciterSheetTitle">
@@ -1206,6 +1647,10 @@ input[type="range"] { width:100%; min-height:44px; margin:0; accent-color:var(--
 <script src="../js/audio-fx.js"></script>
 <script src="../js/video-maker-fx.js"></script>
 <script src="../js/video-maker-rec.js"></script>
+<script src="../js/khatira.js"></script>
+<script src="../js/video-stickers.js"></script>
+<script src="../js/video-script.js"></script>
+<script src="../js/zip-store.js"></script>
 <script src="../js/video-maker.js"></script>
 <script>
 function openLanguage() { if (window.I18n) I18n.openLangSheet(); }
@@ -1215,7 +1660,7 @@ function openLanguage() { if (window.I18n) I18n.openLangSheet(); }
 // the "multiple pictures" switch shows but does nothing). Drop the stale copy from
 // every cache and reload once. Keep NEED in step with BUILD in js/video-maker.js.
 (function () {
-  var NEED = 8;
+  var NEED = 15;
   try {
     if (window.VM && VM.build >= NEED) { sessionStorage.removeItem('vmHealed'); return; }
     if (sessionStorage.getItem('vmHealed') || !window.caches) return;   // at most once per tab

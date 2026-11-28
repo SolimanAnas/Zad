@@ -16,7 +16,10 @@ test('after the first visit the page opens with no connection', async ({ page, c
   await page.evaluate(() => navigator.serviceWorker.ready);
   await expect.poll(() => page.evaluate(async () => (await caches.keys()).length)).toBeGreaterThan(0);
   await expect.poll(() => page.evaluate(async () => {
-    const c = await caches.open('qvm-v16');
+    // the app's cache, whatever its version (sw.js VERSION), not the recitations' one
+    const name = (await caches.keys()).find(k => /^qvm-v\d+$/.test(k));
+    if (!name) return false;
+    const c = await caches.open(name);
     return !!(await c.match('/data/quran.json')) && !!(await c.match('/js/video-maker-long.js'));
   })).toBe(true);
 
