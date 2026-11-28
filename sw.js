@@ -6,8 +6,9 @@
 //     first time it is used.
 //   - Recitation MP3s: cache-first, filled on first use.
 // Bump VERSION whenever a cached file changes.
-const VERSION = 'qvm-v17';   // v17: the video maker brought up to date (khatira.js, video-stickers.js, video-script.js, zip-store.js)
+const VERSION = 'qvm-v18';   // v18: video colours, videos in the slideshow, ayah line by line / word by word, translations under the ayat (data/translations, cached by the page on first use); v17: the video maker brought up to date (khatira.js, video-stickers.js, video-script.js, zip-store.js)
 const AUDIO = 'qvm-audio-v1';
+const TRANS = 'quran-offline-translations-v1';   // the video maker keeps the translations here itself
 const CORE = [
   './', './index.html', './manifest.json',
   './pages/video-maker.html',
@@ -36,7 +37,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== AUDIO).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== AUDIO && k !== TRANS).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -47,6 +48,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   const isAudio = url.hostname === 'everyayah.com' && url.pathname.endsWith('.mp3');
   if (url.origin !== location.origin && !isAudio) return;
+  if (url.pathname.includes('/data/translations/')) return;   // large, cached by the page (TRANS)
   if (req.headers.get('range')) return;          // let the browser handle partial requests itself
   event.respondWith(
     caches.match(req, { ignoreSearch: !isAudio }).then(hit => hit || fetch(req).then(res => {

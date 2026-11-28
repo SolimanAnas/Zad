@@ -18,3 +18,13 @@ All under the SIL Open Font License 1.1; each licence is in `fonts/licenses/`.
 - `images/stickers/h01.webp` … `h10.webp` (the high-resolution pack) and `s01.webp` … `s39.webp`:
   the character stickers (js/video-stickers.js), illustrations supplied for the project, cleaned of
   stray semi-transparent specks around the outlines and saved as WebP.
+
+## Quran translations
+
+- `data/translations/*.json`: translations from the [Tanzil Project](https://tanzil.net/trans/),
+  stored as published: Saheeh International (`en.sahih`), Diyanet İşleri (`tr.diyanet`), Muhammad
+  Junagarhi (`ur.junagarhi`), Burhan Muhammad-Amin (`ku.asan`; its published text has no translation
+  for 108:3, shown as such) and al-Tafsir al-Muyassar (`ar.muyassar`). Shown under the ayat in the
+  video maker. Tanzil's terms: non-commercial use only (this app is free, with no ads or payments);
+  apps using more than three of them link back to https://tanzil.net/trans/, which the video
+  maker's translation note does.
